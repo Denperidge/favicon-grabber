@@ -1,14 +1,16 @@
-import { readFileSync } from "fs";
+import { readFileSync, rmSync } from "fs";
 import test from "ava";
 import { _getBaseUrl, _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-fetcher.js";
 
-const URLS = [ "https://blinkies.cafe" ];
 
+const URLS = [ "https://blinkies.cafe" ];
 /**
  * Good examples of urls that give issues
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
  */
 const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/" ];
+
+const generatedFiles = [];
 
 test("_getBaseUrl works as expected", t => {
     t.is(_getBaseUrl("https://example.com/"), "https://example.com");
@@ -59,11 +61,23 @@ test("_request returns expected status codes & contents", async t => {
     };
 })
 
-/*
-test("_saveFile... saves a file", t => {
-    t.is()
+test("_saveFile... saves a file", async t => {
+    const outputFilepath = await _saveFile(
+        "https://cheatsheet.denperidge.com/favicon.ico",
+        "tests/test-%basename%"
+    );
+    generatedFiles.push(outputFilepath)
+
+    const output = readFileSync(outputFilepath);
+    t.deepEqual(
+        output,
+        readFileSync("tests/cheatsheet-favicon.ico")
+    );
+    t.notDeepEqual(
+        output,
+        readFileSync("tests/other-favicon.ico")
+    );
 });
-*/
 
 test("getFaviconsFromHtmlString returns the correct (amount of) results, with an url prepended if specified", t => {
     const TEST_URL = "https://example.com"
@@ -135,5 +149,8 @@ test("getFaviconsFromHtmlString returns the correct (amount of) results, with an
 })
 
 
-
-
+test.after("Cleanup generated files", () => {
+    generatedFiles.forEach(file => {
+        rmSync(file);
+    })
+})

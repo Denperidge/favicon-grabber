@@ -1,4 +1,7 @@
 import { basename, extname } from "path";
+import { writeFile, createWriteStream } from "fs";
+import { Readable } from "stream";
+import { finished } from "stream/promises";
 
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
@@ -57,16 +60,17 @@ export async function _request(url) {
     });
 }
 
-export async function _saveFile(url, outPath) {
+export async function _saveFile(url, outPathFormat="%basename%") {
     return new Promise(async (resolve, reject) => {
         try {
+            const outputPath = _parseOutputFormat(outPathFormat, url);
             const data = await _request(url);
-            const stream = createWriteStream(outPath);
+            const stream = createWriteStream(outputPath);
             await finished(Readable.fromWeb(data.body).pipe(stream));
-            resolve(outPath);
+            resolve(outputPath);
         }
         catch (e) {
-            console.error(`Error during _saveFile (url: ${url}, outPath: ${outPath})`)
+            console.error(`Error during _saveFile (url: ${url}, outPathFormat: ${outPathFormat})`)
             reject(e);
         }
     });
