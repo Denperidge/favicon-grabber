@@ -1,5 +1,3 @@
-
-// <link(.|\n)*?ico(.|\n)*?>
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
 /**
@@ -28,8 +26,12 @@ export function _getBaseUrl(oldUrl) {
 
 /**
  * 
- * @param {string|null} url
- * @param {string} html  
+ * Turns a HTML string into favicon href's
+ * 
+ * @param {string} html string of HTML code
+ * @param {string|null} url Add specified url to the start of favicons, if not was already there. Null/disabled by default
+ * 
+ * @returns {Array<string>} ["/favicon.ico", "/icon.png"] || ["https://example.com/favicon.ico", "https://example.com/logo.png"]
  */
 export function getFaviconsFromHtmlString(html, url=null) {
     try {
@@ -40,6 +42,9 @@ export function getFaviconsFromHtmlString(html, url=null) {
             return icoPathsMatches;
         } else {
             const icoPaths = icoPathsMatches.map((icoPath) => {
+                if (icoPath.includes("://")) {
+                    return icoPath
+                }
                 const addition = icoPath.startsWith("/") ?
                     "" : "/";
                 return url + addition + icoPath;

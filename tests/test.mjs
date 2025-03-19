@@ -51,7 +51,7 @@ test("getFaviconsFromHtmlString returns the correct (amount of) results, with an
         "/favicon.ico?v=4393bde228f3",
         "/favicon-16x16.png?v=50d5f3028f70",
         "/favicon-32x32.png?v=2b275943c6da",
-        "/favicon-48x48.png?v=92136164553a",
+        "https://cheatsheet.denperidge.com/favicon-48x48.png?v=92136164553a",
         "/apple-touch-icon-57x57.png?v=cf5cf9f99205",
         "/apple-touch-icon-60x60.png?v=8cc19ecc8591",
         "/apple-touch-icon-72x72.png?v=0d872586d7c6",
@@ -99,12 +99,14 @@ test("getFaviconsFromHtmlString returns the correct (amount of) results, with an
         "/apple-touch-startup-image-2732x2048.png?v=0eb53364f945",
     ];
     const EXPECTED_RESULTS_WITH_URL = EXPECTED_RESULTS.map(result => {
-        if (!result.startsWith("/")) {
+        if (result.includes("://")) { 
+            return result;
+        } else if (!result.startsWith("/")) {
             return TEST_URL + "/" + result;
         } else {
             return TEST_URL + result;
         }
-    })
+    });
 
     const html = readFileSync("tests/test.html", {encoding: "utf-8"})
     t.deepEqual(getFaviconsFromHtmlString(html), EXPECTED_RESULTS, `Returns favicon hrefs without url (${EXPECTED_RESULTS[0]}) if none is specified`)
