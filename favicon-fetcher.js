@@ -1,6 +1,6 @@
 
 // <link(.|\n)*?ico(.|\n)*?>
-const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*(\.png|\.ico).*)"(.|\n)*?>/gi;
+const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
 /**
  * 
