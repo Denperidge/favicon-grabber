@@ -1,0 +1,26 @@
+{
+  "name": "favicon-fetcher",
+  "description": "A Node.js no-dependency favicon fetcher. It doesn't rely on external endpoints unless nothing else works, instead using the HTML, regex and the fetch API",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "favicon-fetcher.js",
+  "author": "Denperidge",
+  "license": "MIT",
+  "scripts": {
+    "test": "ava --timeout=2m"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "homepage": "https://github.com/Denperidge/favicon-fetcher#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Denperidge/favicon-fetcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Denperidge/favicon-fetcher/issues"
+  },
+  "keywords": [
+    "favicons"
+  ]
+}
