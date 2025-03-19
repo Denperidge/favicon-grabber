@@ -96,6 +96,21 @@ export function getFaviconsFromHtmlString(html, url=null) {
     }
 }
 
+export async function _downloadFaviconFromHtml(url, outputPathFormat) {
+    return new Promise(async (resolve, reject) => {
+        const req = await _request(url);
+        const favicons = getFaviconsFromHtmlString(await req.text(), url);
+        if (favicons.length < 1) {
+            reject(new Error("No favicons found from HTML"));
+            return;
+        }
+        downloadFavicon(favicons[0], outputPathFormat)
+            .then(out => {
+                resolve(out)}
+            ).catch(reject)
+    })
+}
+
 /**
  * 
  * @param {URL|string} url
@@ -106,14 +121,25 @@ export function getFaviconsFromHtmlString(html, url=null) {
  */
 export async function downloadFavicon(url, outputPathFormat="%basename%") {
     return new Promise(async (resolve, reject) => {
-        url = new URL(url);
+        try {
+            url = new URL(url);
+        } catch (e) {
+            console.error("Error parsing url " + url);
+            throw e;
+        }
         // If file in url
         if (extname(url.pathname) != "") {
             resolve(_saveFile(url, outputPathFormat));
         } else {
-            resolve(
-                _saveFile(url.origin + "/favicon.ico", outputPathFormat)
-            );
+            _saveFile(url.origin + "/favicon.ico", outputPathFormat)
+                .then(output => {resolve(output)})
+                .catch(e => {
+                    _downloadFaviconFromHtml(url, outputPathFormat)
+                    .then(output => resolve(output))
+                    .catch(e => {
+                        console.log(e)
+                    })
+                })
         }
     });
 }
