@@ -1,10 +1,40 @@
+import {join} from "path";
+
+const REGEX_GET_ICO = /(?<=href=").*?\.ico/g;
 
 /**
  * 
- * @param {String} html  
+ * @param {string} url 
+ * @returns {string}
  */
-export function getFaviconsFromHtmlString(html) {
-    
+export function _getBaseUrl(url) {
+    return url.substring(0, url.indexOf("/"));
+}
+
+/**
+ * 
+ * @param {string|null} url
+ * @param {string} html  
+ */
+export function getFaviconsFromHtmlString(html, url=null) {
+    try {
+        const icoPathsMatches = html.match(REGEX_GET_ICO);
+        if (url === null) {
+            return icoPathsMatches
+        } else {
+            const icoPaths = icoPathsMatches.map((icoPath) => {
+                if (icoPath.startsWith("/")) {
+                    return join(getBaseUrl(url), icoPath);
+                } else {
+                    return join(url, icoPath);
+                }
+            })
+            return icoPaths;
+        }
+    } catch (e) {
+        console.log("Error during parsin favicons from HTML")
+        throw e;
+    }
 }
 
 /**
