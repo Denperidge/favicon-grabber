@@ -37,6 +37,12 @@ export async function _request(url) {
     });
 }
 
+/**
+ * 
+ * @param {string|URL} url url to file to save
+ * @param {string} outPathFormat @see downloadFavicon
+ * @returns {Promise<string>} final output path
+ */
 export async function _saveFile(url, outPathFormat="%basename%") {
     return new Promise(async (resolve, reject) => {
         try {
@@ -95,13 +101,17 @@ export function getFaviconsFromHtmlString(html, url=null) {
  *  
  */
 export async function downloadFavicon(url, outputPathFormat="%basename%") {
-    url = new URL(url);
-    // If file in url
-    if (extname(url.pathname) != "") {
-        _saveFile(url, outputPathFormat);
-    } else {
-        _saveFile(url.origin + "/favicon.ico", outputPathFormat);
-    }
+    return new Promise(async (resolve, reject) => {
+        url = new URL(url);
+        // If file in url
+        if (extname(url.pathname) != "") {
+            resolve(_saveFile(url, outputPathFormat));
+        } else {
+            resolve(
+                _saveFile(url.origin + "/favicon.ico", outputPathFormat)
+            );
+        }
+    });
 }
 
 /**
