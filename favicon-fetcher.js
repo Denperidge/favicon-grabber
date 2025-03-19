@@ -1,6 +1,6 @@
-import {join } from "path";
 
-const REGEX_GET_ICO = /(?<=href=").*?\.ico/g;
+// <link(.|\n)*?ico(.|\n)*?>
+const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*(\.png|\.ico).*)"(.|\n)*?>/gi;
 
 /**
  * 
@@ -33,7 +33,9 @@ export function _getBaseUrl(oldUrl) {
  */
 export function getFaviconsFromHtmlString(html, url=null) {
     try {
-        const icoPathsMatches = html.match(REGEX_GET_ICO);
+        const icoPathsMatches = Array.from(
+            html.matchAll(REGEX_GET_ICO))
+            .map((match) => match.groups.href);
         if (url === null) {
             return icoPathsMatches;
         } else {
