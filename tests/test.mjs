@@ -43,13 +43,12 @@ test("_request returns expected status codes & contents", async t => {
     };
 })
 
-/*
+
 test("getFaviconsFromHtmlString returns the correct amount of results in the correct format", t => {
     const html = readFileSync("tests/test.html", {encoding: "utf-8"})
     t.deepEqual(getFaviconsFromHtmlString(html), ["/favicon.ico"]);
     t.deepEqual(getFaviconsFromHtmlString(html, "https://example.com"), ["https://example.com/favicon.ico"])
 })
-    */
 
 
 

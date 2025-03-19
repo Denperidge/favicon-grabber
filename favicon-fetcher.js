@@ -1,4 +1,4 @@
-import {join} from "path";
+import {join } from "path";
 
 const REGEX_GET_ICO = /(?<=href=").*?\.ico/g;
 
@@ -38,11 +38,9 @@ export function getFaviconsFromHtmlString(html, url=null) {
             return icoPathsMatches;
         } else {
             const icoPaths = icoPathsMatches.map((icoPath) => {
-                if (icoPath.startsWith("/")) {
-                    return join(getBaseUrl(url), icoPath);
-                } else {
-                    return join(url, icoPath);
-                }
+                const addition = icoPath.startsWith("/") ?
+                    "" : "/";
+                return url + addition + icoPath;
             })
             return icoPaths;
         }
