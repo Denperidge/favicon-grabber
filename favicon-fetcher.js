@@ -1,3 +1,5 @@
+import { basename, extname } from "path";
+
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
 /**
@@ -22,6 +24,52 @@ export function _getBaseUrl(oldUrl) {
     else if (oldUrl.includes("/")) {
         return oldUrl.substring(0, oldUrl.indexOf("/"));
     }
+}
+
+/**
+ * Parses a filepath into the outputPathFormat
+ * 
+ * @param {string} outputPathFormat @see downloadFavicon for outputPathFormat
+ * @param {string} originalFilepath path to the file being adapted into outputFormat
+ * @returns {string} outputPath
+ */
+export function _parseOutputFormat(outputPathFormat, originalFilepath) {
+    return outputPathFormat
+        .replace(/%basename%/gi, basename(originalFilepath))
+        .replace(/%filestem%/gi, basename(originalFilepath, extname(originalFilepath)))
+        .replace(/%extname%/gi, extname(originalFilepath))
+}
+
+/**
+ * 
+ * @param {String} url 
+ * 
+ * @returns {Promise<Response>}
+ */
+export async function _request(url) {
+    return new Promise(async (resolve, reject) => {
+        fetch(url)
+            .then((response) => {resolve(response)})
+            .catch((e) => {
+                console.log("Error whilst requesting data from " + url);
+                reject(e);
+            });
+    });
+}
+
+export async function _saveFile(url, outPath) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const data = await _request(url);
+            const stream = createWriteStream(outPath);
+            await finished(Readable.fromWeb(data.body).pipe(stream));
+            resolve(outPath);
+        }
+        catch (e) {
+            console.error(`Error during _saveFile (url: ${url}, outPath: ${outPath})`)
+            reject(e);
+        }
+    });
 }
 
 /**
@@ -59,21 +107,24 @@ export function getFaviconsFromHtmlString(html, url=null) {
 
 /**
  * 
- * @param {String} url 
- * 
- * @returns {Promise<Response>}
+ * @param {string} outputPathFormat output path format to use.
+ * %basename% and %extname% can be used to return the source file's properties
+ * @example: `outdir/favicon-fetcher-%basename%.%extname%`
+ *  
  */
-export async function _request(url) {
-    return new Promise(async (resolve, reject) => {
-        fetch(url)
-            .then((response) => {resolve(response)})
-            .catch((e) => {
-                console.log("Error whilst requesting data from " + url);
-                reject(e);
-            });
-    });
+export async function downloadFavicon(url, outputPathFormat="%filename%") {
+    
+    _parseOutputFormat(outputPathFormat)
 }
 
+/**
+ * 
+ * @param {Array<string>} urls list of URLS to get favicons from 
+ * @param {string} outputPathFormat @see downloadFavicon for outputPathFormat
+ */
+export async function downloadFavicons(urls, outputPathFormat) {
+    
+}
 
 
 /*

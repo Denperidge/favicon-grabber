@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import test from "ava";
-import { _getBaseUrl, _request, getFaviconsFromHtmlString} from "../favicon-fetcher.js";
+import { _getBaseUrl, _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-fetcher.js";
 
 const URLS = [ "https://blinkies.cafe" ];
 
@@ -34,6 +34,22 @@ test("_getBaseUrl works as expected", t => {
 
 });
 
+test("_parseOutputFormat works as expected", t => {
+    const filename = "https://example.com/favicon.png";
+    t.is(
+        _parseOutputFormat("out/output.png", filename),
+        "out/output.png", "Normal strings don't get edited")
+    t.is(
+        _parseOutputFormat("%basename%", filename),
+        "favicon.png", "%basename% returns the regular filename")
+    t.is(
+        _parseOutputFormat("%filestem%%extname%",filename),
+        "favicon.png", "Combining %filestem% and %extname% returns the original filename")
+    t.is(
+        _parseOutputFormat("out/output%extname%", filename),
+        "out/output.png", "Subdirs can be added")
+});
+
 test("_request returns expected status codes & contents", async t => {
     for (let i = 0; i < URLS.length; i++) {
         const url = URLS[i];
@@ -43,6 +59,11 @@ test("_request returns expected status codes & contents", async t => {
     };
 })
 
+/*
+test("_saveFile... saves a file", t => {
+    t.is()
+});
+*/
 
 test("getFaviconsFromHtmlString returns the correct (amount of) results, with an url prepended if specified", t => {
     const TEST_URL = "https://example.com"
