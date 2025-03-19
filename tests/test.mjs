@@ -21,8 +21,8 @@ test("_getBaseUrl works as expected", t => {
     t.is(_getBaseUrl("example.com"), "example.com");
 
     t.is(_getBaseUrl("https://example.com/subpage/index.html"), "https://example.com");
-    t.is(_getBaseUrl("http://example.com/subpage/index.html"), "https://example.com");
-    t.is(_getBaseUrl("example.com/subpage/index.html"), "https://example.com");
+    t.is(_getBaseUrl("http://example.com/subpage/index.html"), "http://example.com");
+    t.is(_getBaseUrl("example.com/subpage/index.html"), "example.com");
 
     t.is(_getBaseUrl("https://example.com/subpage/"), "https://example.com");
     t.is(_getBaseUrl("http://example.com/subpage/"), "http://example.com");

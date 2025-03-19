@@ -4,11 +4,26 @@ const REGEX_GET_ICO = /(?<=href=").*?\.ico/g;
 
 /**
  * 
- * @param {string} url 
+ * @param {string} oldUrl 
  * @returns {string}
  */
-export function _getBaseUrl(url) {
-    return url.substring(0, url.indexOf("/"));
+export function _getBaseUrl(oldUrl) {
+    if (!oldUrl.includes("/")) {
+        return oldUrl;
+    }
+    else if (oldUrl.includes("://")) {
+        const urlWithoutProtocol = oldUrl.substring(oldUrl.indexOf("://") + 3);
+        if (!urlWithoutProtocol.includes("/")) {
+            return oldUrl;
+        } else {
+            let newUrl = oldUrl.substring(0, oldUrl.indexOf("://") + 3);
+            newUrl += urlWithoutProtocol.substring(0, urlWithoutProtocol.indexOf("/"))
+            return newUrl;
+        }
+    }
+    else if (oldUrl.includes("/")) {
+        return oldUrl.substring(0, oldUrl.indexOf("/"));
+    }
 }
 
 /**
@@ -20,7 +35,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
     try {
         const icoPathsMatches = html.match(REGEX_GET_ICO);
         if (url === null) {
-            return icoPathsMatches
+            return icoPathsMatches;
         } else {
             const icoPaths = icoPathsMatches.map((icoPath) => {
                 if (icoPath.startsWith("/")) {
@@ -32,7 +47,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
             return icoPaths;
         }
     } catch (e) {
-        console.log("Error during parsin favicons from HTML")
+        console.log("Error during parsing favicons from HTML");
         throw e;
     }
 }
