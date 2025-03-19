@@ -6,37 +6,14 @@ import { finished } from "stream/promises";
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
 /**
- * 
- * @param {string} oldUrl 
- * @returns {string}
- */
-export function _getBaseUrl(oldUrl) {
-    if (!oldUrl.includes("/")) {
-        return oldUrl;
-    }
-    else if (oldUrl.includes("://")) {
-        const urlWithoutProtocol = oldUrl.substring(oldUrl.indexOf("://") + 3);
-        if (!urlWithoutProtocol.includes("/")) {
-            return oldUrl;
-        } else {
-            let newUrl = oldUrl.substring(0, oldUrl.indexOf("://") + 3);
-            newUrl += urlWithoutProtocol.substring(0, urlWithoutProtocol.indexOf("/"))
-            return newUrl;
-        }
-    }
-    else if (oldUrl.includes("/")) {
-        return oldUrl.substring(0, oldUrl.indexOf("/"));
-    }
-}
-
-/**
  * Parses a filepath into the outputPathFormat
  * 
  * @param {string} outputPathFormat @see downloadFavicon for outputPathFormat
- * @param {string} originalFilepath path to the file being adapted into outputFormat
+ * @param {string|URL} originalFilepath path to the file being adapted into outputFormat
  * @returns {string} outputPath
  */
 export function _parseOutputFormat(outputPathFormat, originalFilepath) {
+    originalFilepath = originalFilepath.toString();
     return outputPathFormat
         .replace(/%basename%/gi, basename(originalFilepath))
         .replace(/%filestem%/gi, basename(originalFilepath, extname(originalFilepath)))
@@ -45,7 +22,7 @@ export function _parseOutputFormat(outputPathFormat, originalFilepath) {
 
 /**
  * 
- * @param {String} url 
+ * @param {string|URL} url 
  * 
  * @returns {Promise<Response>}
  */
@@ -81,7 +58,7 @@ export async function _saveFile(url, outPathFormat="%basename%") {
  * Turns a HTML string into favicon href's
  * 
  * @param {string} html string of HTML code
- * @param {string|null} url Add specified url to the start of favicons, if not was already there. Null/disabled by default
+ * @param {string|URL|null} url Add specified url to the start of favicons, if not was already there. Null/disabled by default
  * 
  * @returns {Array<string>} ["/favicon.ico", "/icon.png"] || ["https://example.com/favicon.ico", "https://example.com/logo.png"]
  */
@@ -95,7 +72,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
         } else {
             const icoPaths = icoPathsMatches.map((icoPath) => {
                 if (icoPath.includes("://")) {
-                    return icoPath
+                    return icoPath;
                 }
                 const addition = icoPath.startsWith("/") ?
                     "" : "/";
@@ -111,14 +88,20 @@ export function getFaviconsFromHtmlString(html, url=null) {
 
 /**
  * 
+ * @param {URL|string} url
  * @param {string} outputPathFormat output path format to use.
  * %basename% and %extname% can be used to return the source file's properties
  * @example: `outdir/favicon-fetcher-%basename%.%extname%`
  *  
  */
-export async function downloadFavicon(url, outputPathFormat="%filename%") {
-    
-    _parseOutputFormat(outputPathFormat)
+export async function downloadFavicon(url, outputPathFormat="%basename%") {
+    url = new URL(url);
+    // If file in url
+    if (extname(url.pathname) != "") {
+        _saveFile(url, outputPathFormat);
+    } else {
+        _saveFile(url.origin + "/favicon.ico", outputPathFormat);
+    }
 }
 
 /**
@@ -126,8 +109,8 @@ export async function downloadFavicon(url, outputPathFormat="%filename%") {
  * @param {Array<string>} urls list of URLS to get favicons from 
  * @param {string} outputPathFormat @see downloadFavicon for outputPathFormat
  */
-export async function downloadFavicons(urls, outputPathFormat) {
-    
+export async function downloadFaviconFromUrls(urls, outputPathFormat) {
+    //for (let i = 0; )
 }
 
 
