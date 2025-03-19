@@ -9,7 +9,7 @@ const URLS = [ "https://blinkies.cafe", "https://www.mobilephonemuseum.com/", "h
  * Good examples of urls that give issues
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
  */
-const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/" ];
+const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/", "https://www.digitaltransgenderarchive.net/", "https://lesbianherstoryarchives.org/collections/" ];
 
 const generatedFiles = [];
 
