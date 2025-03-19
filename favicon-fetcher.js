@@ -1,5 +1,6 @@
 import { basename, extname } from "path";
-import { writeFile, createWriteStream } from "fs";
+import { createWriteStream } from "fs";
+import { stat } from "fs/promises";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 
@@ -50,6 +51,9 @@ export async function _saveFile(url, outPathFormat="%basename%") {
             const data = await _request(url);
             const stream = createWriteStream(outputPath);
             await finished(Readable.fromWeb(data.body).pipe(stream));
+            if ((await stat(outputPath)).size == 0) {
+                throw new Error(`Output file ${outputPath} size is 0`);
+            }
             resolve(outputPath);
         }
         catch (e) {
