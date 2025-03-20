@@ -30,5 +30,17 @@ downloadFavicon("https://blinkies.cafe", "assets/%basename%").then(outputPath =>
 ```
 That's it! Every step (described above or in the downloadFavicon comments) will be tried until a favicon can be found.
 
+Alternatively, you can import specific parts of the module
+```js
+import downloadFavicon, { getFaviconsFromHtmlString, _parseOutputFormat, _request, _saveFile } from "favicon-grabber";
+```
+
 ## Reference
-For more information on the 
+For more information on the output path formatting, check the `downloadFavicon` documentation in [favicon-grabber.js](favicon-grabber.js).
+
+JSDoc is used throughout the project for documentation & providing info to your IDE.
+
+## License
+This project is licensed under the [MIT License](LICENSE)
+
+ 
