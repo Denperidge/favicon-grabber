@@ -6,7 +6,7 @@ import { finished } from "stream/promises";
 
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
-const FALLBACK_DUCKDUCKGO =
+const FALLBACK_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
 const FALLBACK_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
 
 /**
@@ -120,23 +120,17 @@ export async function _downloadFaviconFromHtml(url, outputPathFormat) {
  * @param {string} outputPathFormat 
  * @returns 
  */
-export async function _downloadFaviconFromExternalProvider(url, outputPathFormat, tried={duckduckgo: false, google: false}) {   
+export async function _downloadFaviconFromExternalProvider(url, outputPathFormat, providerPrefix, providerSuffix) {   
     url = new URL(url);
-    return new Promise(async (resolve, reject) => {
-        let prefix = "", suffix = "";
-        if (!tried.duckduckgo) {
-            tried.duckduckgo = true;
-            prefix = FALLBACK_DUCKDUCKGO;
-            suffix = ".ico";
-        } else if (!tried.google) {
-            tried.google = true;
-            prefix = FALLBACK_GOOGLE;
-        } else {
-            reject(new Error("Could not get favicon from Duckduckgo/Google"));
-            return;
-        }
-        return _saveFile(prefix + url.hostname + suffix, outputPathFormat);
-    });
+    return _saveFile(providerPrefix + url.hostname + providerSuffix, outputPathFormat);
+}
+
+export async function downloadFaviconFromDuckduckgo(url, outputPathFormat) {
+    return _downloadFaviconFromExternalProvider(url, outputPathFormat, FALLBACK_DUCKDUCKGO, ".ico");
+}
+
+export async function downloadFaviconFromGoogle(url, outputPathFormat) {
+    return _downloadFaviconFromExternalProvider(url, outputPathFormat, FALLBACK_GOOGLE, "");
 }
 
 /**
@@ -165,7 +159,11 @@ export async function downloadFavicon(url, outputPathFormat="%basename%") {
                     _downloadFaviconFromHtml(url, outputPathFormat)
                     .then(output => resolve(output))
                     .catch(e => {
-                        console.log(e)
+                        downloadFaviconFromDuckduckgo(url, outputPathFormat)
+                            .then(resolve)
+                            .catch(e => {
+                                downloadFaviconFromGoogle(url, outputPathFormat);
+                            });
                     })
                 })
         }

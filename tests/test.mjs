@@ -141,8 +141,9 @@ test("getFaviconsFromHtmlString returns the correct (amount of) results, with an
 })
 
 test("downloadFavicon works as expected", async t => {
-    for (let i = 0; i < URLS.length; i++) {
-        const url = URLS[i];
+    const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK);
+    for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
         const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
