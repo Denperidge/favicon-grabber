@@ -1,9 +1,9 @@
 {
-  "name": "favicon-fetcher",
-  "description": "A Node.js no-dependency favicon fetcher. It doesn't rely on external endpoints unless nothing else works, instead using the HTML, regex and the fetch API",
+  "name": "favicon-grabber",
+  "description": "A Node.js no-dependency favicon grabber. It doesn't rely on external endpoints unless nothing else works; instead opting to use the HTML, regex and fetch wherever possible",
   "version": "0.1.0",
   "type": "module",
-  "main": "favicon-fetcher.js",
+  "main": "favicon-grabber.js",
   "author": "Denperidge",
   "license": "MIT",
   "scripts": {
@@ -12,13 +12,13 @@
   "directories": {
     "test": "tests"
   },
-  "homepage": "https://github.com/Denperidge/favicon-fetcher#readme",
+  "homepage": "https://github.com/Denperidge/favicon-grabber#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Denperidge/favicon-fetcher.git"
+    "url": "git+https://github.com/Denperidge/favicon-grabber.git"
   },
   "bugs": {
-    "url": "https://github.com/Denperidge/favicon-fetcher/issues"
+    "url": "https://github.com/Denperidge/favicon-grabber/issues"
   },
   "keywords": [
     "favicons"
