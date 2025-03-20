@@ -4,12 +4,19 @@ import { parse as parseFiletype } from "file-type-mime";
 import { _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString, downloadFavicon} from "../favicon-fetcher.js";
 
 
-const URLS = [ "https://blinkies.cafe", "https://www.mobilephonemuseum.com/", "https://tweakers.net/nieuws/list/20250319" ];
+const URLS = [
+    "https://blinkies.cafe",
+    "https://www.mobilephonemuseum.com/",
+    "https://tweakers.net/nieuws/list/20250319",
+    //
+    "https://www.digitaltransgenderarchive.net/",
+    "https://lesbianherstoryarchives.org/collections/"
+ ];
 /**
  * Good examples of urls that give issues
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
  */
-const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/", "https://www.digitaltransgenderarchive.net/", "https://lesbianherstoryarchives.org/collections/" ];
+const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/" ];
 
 const generatedFiles = [];
 
@@ -139,7 +146,10 @@ test("downloadFavicon works as expected", async t => {
         const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
-        t.is(parseFiletype(readFileSync(output)).mime, "image/x-icon")
+        t.true(
+            [ "image/x-icon", "image/png" ].includes(
+                parseFiletype(readFileSync(output)).mime)
+            )
     };
 });
 

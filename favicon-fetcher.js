@@ -6,6 +6,9 @@ import { finished } from "stream/promises";
 
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
+const FALLBACK_DUCKDUCKGO =
+const FALLBACK_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
+
 /**
  * Parses a filepath into the outputPathFormat
  * 
@@ -109,6 +112,31 @@ export async function _downloadFaviconFromHtml(url, outputPathFormat) {
                 resolve(out)}
             ).catch(reject)
     })
+}
+
+/**
+ * 
+ * @param {string|URL} url 
+ * @param {string} outputPathFormat 
+ * @returns 
+ */
+export async function _downloadFaviconFromExternalProvider(url, outputPathFormat, tried={duckduckgo: false, google: false}) {   
+    url = new URL(url);
+    return new Promise(async (resolve, reject) => {
+        let prefix = "", suffix = "";
+        if (!tried.duckduckgo) {
+            tried.duckduckgo = true;
+            prefix = FALLBACK_DUCKDUCKGO;
+            suffix = ".ico";
+        } else if (!tried.google) {
+            tried.google = true;
+            prefix = FALLBACK_GOOGLE;
+        } else {
+            reject(new Error("Could not get favicon from Duckduckgo/Google"));
+            return;
+        }
+        return _saveFile(prefix + url.hostname + suffix, outputPathFormat);
+    });
 }
 
 /**
