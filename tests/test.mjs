@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import { _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString, downloadFavicon} from "../favicon-fetcher.js";
+import downloadFavicon, { _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-fetcher.js";
 
 
 const URLS = [
