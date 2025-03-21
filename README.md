@@ -44,7 +44,7 @@ try {
     // Use the external DuckDuckGo provider
     await downloadFaviconFromDuckduckgo("https://www.mobilephonemuseum.com/", "favicon-%filestem%%extname%");
     // Use the external Google provider
-    await downloadFaviconFromGoogle("https://debperidge.com", "favicon-%filestem%%extname%");
+    await downloadFaviconFromGoogle("https://denperidge.com", "favicon-%filestem%%extname%");
     } catch (e) {
         throw e;
     }
