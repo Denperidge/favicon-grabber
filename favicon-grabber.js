@@ -48,7 +48,7 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
     return outPathFormat
         .replace(/%basename%/gi, basename(originalFilepath))
         .replace(/%filestem%/gi, basename(originalFilepath, extname(originalFilepath)))
-        .replace(/%extname%/gi, extname(originalFilepath))
+        .replace(/%extname%/gi, extname(originalFilepath).split("?")[0])
 }
 
 /**
