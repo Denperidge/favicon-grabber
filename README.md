@@ -35,6 +35,15 @@ Alternatively, you can import specific parts of the module
 import downloadFavicon, { getFaviconsFromHtmlString, _parseOutputFormat, _request, _saveFile } from "favicon-grabber";
 ```
 
+### Enable debug logging
+Simply set the environment variable `DEBUG_FAVICON_GRABBER` to a value that isn't `false` or `0` to greatly increase the logging information.
+
+```bash
+#!/bin/bash
+
+DEBUG_FAVICON_GRABBER=1 npm start
+```
+
 ## Reference
 For more information on the output path formatting, check the `downloadFavicon` documentation in [favicon-grabber.js](favicon-grabber.js).
 
