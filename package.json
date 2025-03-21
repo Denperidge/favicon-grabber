@@ -26,5 +26,10 @@
   "devDependencies": {
     "ava": "^6.2.0",
     "file-type-mime": "^0.4.6"
+  },
+  "ava": {
+    "environmentVariables": {
+      "DEBUG_FAVICON_GRABBER": "1"
+    }
   }
 }

@@ -8,6 +8,9 @@ import { env } from "process";
 /** Regex used to find favicons in HTML code */
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
 
+export const ACCEPTED_MIME_TYPES_ICONS = ["image/vnd.microsoft.icon", "image/x-icon", "image/png"];
+export const ACCEPTED_MIME_TYPES_HTML = [ "text/html" ]
+
 // Providers
 const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
 const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
@@ -49,23 +52,41 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
 }
 
 /**
- * Wrapper for fetch
+ * Wrapper for fetch that rejects based on response status codes
+ * or mime type
  * 
- * @param {string|URL} url URL to fetch 
+ * @param {string|URL} url URL to fetch
+ * @param {Array<string>} acceptedMimeTypes Array of accepted mime types
  * @returns {Promise<Response>} Fetch response
  */
-export async function _request(url) {
-    log("_request: " + url);
+export async function _request(url, acceptedMimeTypes) {
+    log(`_request - acceptedMimeTypes: ${acceptedMimeTypes} url: ${url}`);
     return new Promise(async (resolve, reject) => {
         fetch(url)
             .then((response) => {
-                log(`Response: ${response.status} - ${response.statusText}`)
+                const contentType = response.headers.get("content-type");
+                log(`Response: ${response.status} - ${response.statusText}
+                     Content-Type: ${contentType}`)
+
                 if (response.status >= 400) {
                     log("Rejecting request to " + url)
                     const err = new Error(`${response.status} - ${response.statusText}`, {code: response.status});
                     err.code = response.status;
                     reject(err);
                 }
+                let accepted = false;
+                for (let i = 0; i < acceptedMimeTypes.length; i++) {
+                    if (contentType.includes(acceptedMimeTypes[i])) {
+                        accepted = true;
+                        break
+                    }
+                }
+                if (!accepted) {
+                    const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})`;
+                    log(msg);
+                    reject(new Error(msg))
+                    return;
+                } 
                 resolve(response)
             })
             .catch((e) => {
@@ -82,21 +103,23 @@ export async function _request(url) {
  * 
  * @param {string|URL} url url to file to save
  * @param {string} outPathFormat see {@link downloadFavicon}
+ * @param {Array<string>} acceptedMimeTypes see {@link _request}
  * @returns {Promise<string>} final output path
  */
-export async function _saveFile(url, outPathFormat="%basename%") {
+export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes) {
     log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
             const outputPath = _parseOutputFormat(outPathFormat, url);
-            const data = await _request(url);
-            const stream = createWriteStream(outputPath);
-            await finished(Readable.fromWeb(data.body).pipe(stream));
-            if ((await stat(outputPath)).size == 0) {
-                await rm(outputPath)
-                throw new Error(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`);
-            }
-            resolve(outputPath);
+            _request(url, acceptedMimeTypes).then(async data => {
+                const stream = createWriteStream(outputPath);
+                await finished(Readable.fromWeb(data.body).pipe(stream));
+                if ((await stat(outputPath)).size == 0) {
+                    await rm(outputPath)
+                    throw new Error(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`);
+                }
+                resolve(outputPath);
+            }).catch(e => reject(e));
         }
         catch (e) {
             console.error(`Error during _saveFile (url: ${url}, outPathFormat: ${outPathFormat})`)
@@ -153,7 +176,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
 export async function _downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
     log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
-        const req = await _request(websiteUrl);
+        const req = await _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML);
         const favicons = getFaviconsFromHtmlString(await req.text(), websiteUrl);
         log(`favicons found: ${favicons}`)
         if (favicons.length < 1) {
@@ -185,7 +208,7 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
         `)
     return _saveFile(
         providerPrefix + (new URL(websiteUrl)).hostname + providerSuffix, 
-        outPathFormat);
+        outPathFormat, ACCEPTED_MIME_TYPES_ICONS);
 }
 
 /**
@@ -240,11 +263,13 @@ export default async function downloadFavicon(url, outPathFormat="%basename%") {
         }
         if (extname(url.pathname) != "") {
             log("Option 1: file in url, just do a normal request")
-            _saveFile(url, outPathFormat).then(resolve).catch(e => reject(e));
+            _saveFile(url, outPathFormat, ACCEPTED_MIME_TYPES_ICONS)
+                .then(resolve)
+                .catch(e => reject(e));
         } else {
             const faviconFromOrigin = url.origin + "/favicon.ico";
             log(`Option 2: origin + /favicon.ico (${faviconFromOrigin})`)
-            _saveFile(faviconFromOrigin, outPathFormat)
+            _saveFile(faviconFromOrigin, outPathFormat, ACCEPTED_MIME_TYPES_ICONS)
                 .then(resolve)
                 .catch(e => {
                     log("Option 3: determine from webpage's HTML")

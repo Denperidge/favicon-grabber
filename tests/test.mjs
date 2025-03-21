@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import downloadFavicon, { _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-grabber.js";
+import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-grabber.js";
 
 
 const URLS = [
@@ -47,7 +47,7 @@ test("_parseOutputFormat works as expected", t => {
 test("_request returns expected status codes & contents", async t => {
     for (let i = 0; i < URLS.length; i++) {
         const url = URLS[i];
-        const data = await _request(url);
+        const data = await _request(url, ACCEPTED_MIME_TYPES_HTML);
         t.truthy(await data.text(), `Text is not empty (${url})`);
         t.true(data.status < 400, `The status code (${data.status}) is not in the 4** or 5** range`);
     };
@@ -56,14 +56,15 @@ test("_request returns expected status codes & contents", async t => {
 
 test("_request rejects status codes >= 400", async t => {
     await t.throwsAsync(() =>{
-        return _request("https://denperidge.com/doesntexist.ico")
+        return _request("https://denperidge.com/doesntexist.ico", ACCEPTED_MIME_TYPES_ICONS)
     }, {code: 404 });
 });
 
 test("_saveFile... saves a file", async t => {
     const outputFilepath = await _saveFile(
         "https://cheatsheet.denperidge.com/favicon.ico",
-        "tests/test-%basename%"
+        "tests/test-%basename%",
+        ACCEPTED_MIME_TYPES_ICONS
     );
     generatedFiles.push(outputFilepath)
 
@@ -151,6 +152,7 @@ test("downloadFavicon works as expected", async t => {
     const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK);
     for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
+        t.log(url)
         const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
