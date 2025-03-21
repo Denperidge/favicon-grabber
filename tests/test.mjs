@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, getFaviconsFromHtmlString} from "../favicon-grabber.js";
+import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString} from "../favicon-grabber.js";
 
 
 const URLS = [
@@ -79,7 +79,7 @@ test("_saveFile... saves a file", async t => {
     );
 });
 
-test("getFaviconsFromHtmlString returns the correct (amount of) results, with an url prepended if specified", t => {
+test("findFaviconsInHtmlString returns the correct (amount of) results, with an url prepended if specified", t => {
     const TEST_URL = "https://example.com"
     
     const EXPECTED_RESULTS = [
@@ -144,8 +144,8 @@ test("getFaviconsFromHtmlString returns the correct (amount of) results, with an
     });
 
     const html = readFileSync("tests/test.html", {encoding: "utf-8"})
-    t.deepEqual(getFaviconsFromHtmlString(html), EXPECTED_RESULTS, `Returns favicon hrefs without url (${EXPECTED_RESULTS[0]}) if none is specified`)
-    t.deepEqual(getFaviconsFromHtmlString(html, TEST_URL), EXPECTED_RESULTS_WITH_URL, `Returns favicon hrefs without url (${EXPECTED_RESULTS_WITH_URL[0]}) if one is specified`)
+    t.deepEqual(findFaviconsInHtmlString(html), EXPECTED_RESULTS, `Returns favicon hrefs without url (${EXPECTED_RESULTS[0]}) if none is specified`)
+    t.deepEqual(findFaviconsInHtmlString(html, TEST_URL), EXPECTED_RESULTS_WITH_URL, `Returns favicon hrefs without url (${EXPECTED_RESULTS_WITH_URL[0]}) if one is specified`)
 })
 
 test("downloadFavicon works as expected", async t => {

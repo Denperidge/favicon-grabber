@@ -30,9 +30,25 @@ downloadFavicon("https://blinkies.cafe", "assets/%basename%").then(outputPath =>
 ```
 That's it! Every step (described above or in the downloadFavicon comments) will be tried until a favicon can be found.
 
-Alternatively, you can import specific parts of the module
+### Advanced usage
+If you want to choose which download method is used, you can import specific functions from the module
+
 ```js
-import downloadFavicon, { getFaviconsFromHtmlString, _parseOutputFormat, _request, _saveFile } from "favicon-grabber";
+import downloadFavicon, { downloadFaviconFromWebpage, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle } from "favicon-grabber";
+
+try {
+    // Direct download
+    await downloadFavicon("https://marginalia-search.com/favicon.ico", "favicon-%filestem%%extname%");
+    // Use the HTML parsing
+    await downloadFaviconFromWebpage("https://blinkies.cafe/", "favicon-%filestem%%extname%");
+    // Use the external DuckDuckGo provider
+    await downloadFaviconFromDuckduckgo("https://www.mobilephonemuseum.com/", "favicon-%filestem%%extname%");
+    // Use the external Google provider
+    await downloadFaviconFromGoogle("https://debperidge.com", "favicon-%filestem%%extname%");
+    } catch (e) {
+        throw e;
+    }
+
 ```
 
 ### Enable debug logging
