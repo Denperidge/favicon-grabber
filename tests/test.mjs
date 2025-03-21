@@ -53,6 +53,13 @@ test("_request returns expected status codes & contents", async t => {
     };
 })
 
+
+test("_request rejects status codes >= 400", async t => {
+    await t.throwsAsync(() =>{
+        return _request("https://denperidge.com/doesntexist.ico")
+    }, {code: 404 });
+});
+
 test("_saveFile... saves a file", async t => {
     const outputFilepath = await _saveFile(
         "https://cheatsheet.denperidge.com/favicon.ico",

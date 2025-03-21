@@ -3,6 +3,7 @@ import { createWriteStream } from "fs";
 import { stat, rm } from "fs/promises";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
+import { env } from "process";
 
 /** Regex used to find favicons in HTML code */
 const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
@@ -10,6 +11,27 @@ const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>
 // Providers
 const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
 const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
+
+/**
+ * If the env variable `DEBUG_FAVICON_GRABBER
+ * is set to something (that isn't 0 or false) -
+ * log the specified message to console.
+ * 
+ * If the condition above is not met, it will be an empty function instead
+ * 
+ * This way, only a check on the begin of the run needs to be done for conditional logging
+ * 
+ */
+const log = 
+    env.DEBUG_FAVICON_GRABBER != undefined && env.DEBUG_FAVICON_GRABBER != "0" && env.DEBUG_FAVICON_GRABBER != "false" ?
+    /**
+     * 
+     * @param {string} msg Message to log
+     */
+    function(msg) {
+        console.log("[FG] " + msg.toString());
+    } :
+    function(msg) {};
 
 /**
  * Parses a filepath into the outPathFormat
@@ -33,11 +55,21 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
  * @returns {Promise<Response>} Fetch response
  */
 export async function _request(url) {
+    log("_request: " + url);
     return new Promise(async (resolve, reject) => {
         fetch(url)
-            .then((response) => {resolve(response)})
+            .then((response) => {
+                log(`Response: ${response.status} - ${response.statusText}`)
+                if (response.status >= 400) {
+                    log("Rejecting request to " + url)
+                    const err = new Error(`${response.status} - ${response.statusText}`, {code: response.status});
+                    err.code = response.status;
+                    reject(err);
+                }
+                resolve(response)
+            })
             .catch((e) => {
-                console.log("Error whilst requesting data from " + url);
+                console.error("Error whilst requesting data from " + url);
                 reject(e);
             });
     });
@@ -53,6 +85,7 @@ export async function _request(url) {
  * @returns {Promise<string>} final output path
  */
 export async function _saveFile(url, outPathFormat="%basename%") {
+    log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
             const outputPath = _parseOutputFormat(outPathFormat, url);
@@ -87,6 +120,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
             html.matchAll(REGEX_GET_ICO))
             .map((match) => match.groups.href);
         if (url === null) {
+            log(`getFaviconsFromHtmlString url == null\nOutput: ${icoPathsMatches.toString()}`)
             return icoPathsMatches;
         } else {
             const icoPaths = icoPathsMatches.map((icoPath) => {
@@ -97,6 +131,7 @@ export function getFaviconsFromHtmlString(html, url=null) {
                     "" : "/";
                 return url + addition + icoPath;
             })
+            log(`getFaviconsFromHtmlString url == ${url}\nOutput: ${icoPaths.toString()}`)
             return icoPaths;
         }
     } catch (e) {
@@ -116,13 +151,17 @@ export function getFaviconsFromHtmlString(html, url=null) {
  * @returns {string} Local path to downloaded favicon 
  */
 export async function _downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
+    log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
         const req = await _request(websiteUrl);
         const favicons = getFaviconsFromHtmlString(await req.text(), websiteUrl);
+        log(`favicons found: ${favicons}`)
         if (favicons.length < 1) {
+            log("No favicons found from HTML");
             reject(new Error("No favicons found from HTML"));
             return;
         }
+        log(`Selected first favicon: ${favicons[0]}`)
         downloadFavicon(favicons[0], outPathFormat)
             .then(resolve).catch(reject)
     });
@@ -138,6 +177,12 @@ export async function _downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
  * @returns {Promise<string>} Local path to saved favicon
  */
 export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix) {   
+    log(`_downloadFaviconFromExternalProvider:
+        websiteUrl: ${websiteUrl}
+        outPathFormat: ${outPathFormat}
+        providerPrefix: ${providerPrefix}
+        providerSuffix: ${providerSuffix}
+        `)
     return _saveFile(
         providerPrefix + (new URL(websiteUrl)).hostname + providerSuffix, 
         outPathFormat);
@@ -183,33 +228,40 @@ export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat) {
  * @returns {Promise<string>} Local path to downloaded favicon 
  */
 export default async function downloadFavicon(url, outPathFormat="%basename%") {
+    log(`downloadFavicon:
+        ${url}
+        ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
         try {
             url = new URL(url);
         } catch (e) {
             console.error("Error parsing url " + url);
-            throw e;
+            reject(e);
         }
-        // If file in url, just do a normal request
         if (extname(url.pathname) != "") {
-            resolve(_saveFile(url, outPathFormat));
+            log("Option 1: file in url, just do a normal request")
+            _saveFile(url, outPathFormat).then(resolve).catch(e => reject(e));
         } else {
-            // Try 1: origin + /favicon.ico
-            _saveFile(url.origin + "/favicon.ico", outPathFormat)
+            const faviconFromOrigin = url.origin + "/favicon.ico";
+            log(`Option 2: origin + /favicon.ico (${faviconFromOrigin})`)
+            _saveFile(faviconFromOrigin, outPathFormat)
                 .then(resolve)
                 .catch(e => {
-                    // Try 2: use webpage HTML
+                    log("Option 3: determine from webpage's HTML")
                     _downloadFaviconFromWebpage(url, outPathFormat)
                     .then(resolve)
                     .catch(e => {
-                        // Try 3: Duckduckgo provider
+                        log("Option 4: Duckduckgo external provider");
                         downloadFaviconFromDuckduckgo(url, outPathFormat)
                             .then(resolve)
                             .catch(e => {
-                                // Try 4: Google provider
+                                log("Option 5: Google external provider");
                                 downloadFaviconFromGoogle(url, outPathFormat)
                                     .then(resolve)
-                                    .catch(e => {throw e});
+                                    .catch(e => {
+                                        console.error("All options tried, but no favicon could be found for " + url)
+                                        reject(e);
+                                    });
                             });
                     })
                 })
