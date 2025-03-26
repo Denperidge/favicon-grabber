@@ -72,9 +72,8 @@ export async function _request(url, acceptedMimeTypes) {
 
                 if (response.status >= 400) {
                     log("Rejecting request to " + url)
-                    const err = new Error(`${response.status} - ${response.statusText}`, {code: response.status});
-                    err.code = response.status;
-                    reject(err);
+                    reject(response);
+                    return;
                 }
                 let accepted = false;
                 for (let i = 0; i < acceptedMimeTypes.length; i++) {
@@ -86,7 +85,7 @@ export async function _request(url, acceptedMimeTypes) {
                 if (!accepted) {
                     const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})`;
                     log(msg);
-                    reject(new Error(msg))
+                    reject(msg)
                     return;
                 } 
                 resolve(response)
@@ -118,11 +117,11 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
                 await finished(Readable.fromWeb(data.body).pipe(stream));
                 if ((await stat(outputPath)).size == 0) {
                     await rm(outputPath)
-                    reject(new Error(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`));
+                    reject(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`);
                     return;
                 }
                 resolve(outputPath);
-            }).catch(e => reject(e));
+            }).catch(reject);
         }
         catch (e) {
             console.error(`Error during _saveFile (url: ${url}, outPathFormat: ${outPathFormat})`)
@@ -181,20 +180,21 @@ export function findFaviconsInHtmlString(html, url=null) {
 export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
     log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
-        const req = await _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML);
-        const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl);
-        if (favicons === false) {
-            reject("Could not find favicons in HTML");
-        }
-        log(`favicons found: ${favicons}`)
-        if (favicons.length < 1) {
-            log("No favicons found from HTML");
-            reject(new Error("No favicons found from HTML"));
-            return;
-        }
-        log(`Selected first favicon: ${favicons[0]}`)
-        downloadFavicon(favicons[0], outPathFormat)
-            .then(resolve).catch(reject)
+        _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML).then(async (req) => {
+            const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl);
+            if (favicons === false) {
+                reject("Could not find favicons in HTML");
+            }
+            log(`favicons found: ${favicons}`)
+            if (favicons.length < 1) {
+                log("No favicons found from HTML");
+                reject("No favicons found from HTML");
+                return;
+            }
+            log(`Selected first favicon: ${favicons[0]}`)
+            downloadFavicon(favicons[0], outPathFormat)
+                .then(resolve).catch(reject)
+        }).catch(reject);
     });
 }
 

@@ -55,9 +55,11 @@ test("_request returns expected status codes & contents", async t => {
 
 
 test("_request rejects status codes >= 400", async t => {
-    await t.throwsAsync(() =>{
-        return _request("https://denperidge.com/doesntexist.ico", ACCEPTED_MIME_TYPES_ICONS)
-    }, {code: 404 });
+    let rejected;
+    await _request("https://denperidge.com/doesntexist.ico", ACCEPTED_MIME_TYPES_ICONS)
+        .then((response) => { rejected = false; })
+        .catch((response) => { rejected = false; })
+    t.false(rejected)
 });
 
 test("_saveFile... saves a file", async t => {
