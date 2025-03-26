@@ -118,7 +118,8 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
                 await finished(Readable.fromWeb(data.body).pipe(stream));
                 if ((await stat(outputPath)).size == 0) {
                     await rm(outputPath)
-                    throw new Error(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`);
+                    reject(new Error(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`));
+                    return;
                 }
                 resolve(outputPath);
             }).catch(e => reject(e));
@@ -137,7 +138,9 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
  * @param {string|URL|null} url
  * Add specified url to the start of favicon hrefs, if there isn't an url already there. Null/disabled by default
  * 
- * @returns {Array<string>} ["/favicon.ico", "/icon.png"] || ["https://example.com/favicon.ico", "https://example.com/logo.png"]
+ * @returns {Array<string>|false} ["/favicon.ico", "/icon.png"] || ["https://example.com/favicon.ico", "https://example.com/logo.png"]
+ * 
+ * If an unpredicted error happens, this function will return false
  */
 export function findFaviconsInHtmlString(html, url=null) {
     try {
@@ -161,7 +164,7 @@ export function findFaviconsInHtmlString(html, url=null) {
         }
     } catch (e) {
         console.log("Error during parsing favicons from HTML");
-        throw e;
+        return false;
     }
 }
 
@@ -180,6 +183,9 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
     return new Promise(async (resolve, reject) => {
         const req = await _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML);
         const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl);
+        if (favicons === false) {
+            reject("Could not find favicons in HTML");
+        }
         log(`favicons found: ${favicons}`)
         if (favicons.length < 1) {
             log("No favicons found from HTML");
