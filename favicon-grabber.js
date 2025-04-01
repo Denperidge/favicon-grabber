@@ -16,6 +16,14 @@ export const ACCEPTED_MIME_TYPES_HTML = [ "text/html" ]
 const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
 const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
 
+
+/**
+ * @typedef Overrides Different overrides that are available 
+ * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
+ */
+const DEFAULT_OVERRIDES = {contentTypeHeader: false};
+
+
 /**
  * If the env variable `DEBUG_FAVICON_GRABBER
  * is set to something (that isn't 0 or false) -
@@ -62,9 +70,10 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
  * 
  * @param {string|URL} url URL to fetch
  * @param {Array<string>} acceptedMimeTypes Array of accepted mime types
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<Response>} Fetch response
  */
-export async function _request(url, acceptedMimeTypes) {
+export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
     log(`_request - acceptedMimeTypes: ${acceptedMimeTypes} url: ${url}`);
     return new Promise(async (resolve, reject) => {
         fetch(url)
@@ -79,7 +88,7 @@ export async function _request(url, acceptedMimeTypes) {
                     return;
                 }
                 let accepted = false;
-                if (!contentType.startsWith(";")) {
+                if (!overrides.ignoreContentTypeHeader) {
                     for (let i = 0; i < acceptedMimeTypes.length; i++) {
                         if (contentType.includes(acceptedMimeTypes[i])) {
                             accepted = true;
@@ -87,13 +96,7 @@ export async function _request(url, acceptedMimeTypes) {
                         }
                     }
                 } else {
-                    log(`[FG] ${url} has an invalid content type header (${contentType})`);
-                    if (ignoreInvalidContentTypeHeader) {
-                        accepted = true
-                        log("env var FG_IGNORE_INVALID_HEADER is set, continuing...")
-                    } else {
-                        log("env var FG_IGNORE_INVALID_HEADER is not set. Rejecting request")
-                    }
+                    accepted = true;
                 }
                 if (!accepted) {
                     const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})`;
@@ -118,14 +121,15 @@ export async function _request(url, acceptedMimeTypes) {
  * @param {string|URL} url url to file to save
  * @param {string} outPathFormat see {@link downloadFavicon}
  * @param {Array<string>} acceptedMimeTypes see {@link _request}
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} final output path
  */
-export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes) {
+export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
     log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
             const outputPath = _parseOutputFormat(outPathFormat, url);
-            _request(url, acceptedMimeTypes).then(async data => {
+            _request(url, acceptedMimeTypes, overrides).then(async data => {
                 const stream = createWriteStream(outputPath);
                 await finished(Readable.fromWeb(data.body).pipe(stream));
                 if ((await stat(outputPath)).size == 0) {
@@ -205,12 +209,13 @@ export function findFaviconsInHtmlString(html, url=null) {
  * 
  * @param {string|URL} websiteUrl Website to download favicon from 
  * @param {string} outPathFormat see {@link downloadFavicon}
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {string} Local path to downloaded favicon 
  */
-export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
+export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
     log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
-        _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML).then(async (req) => {
+        _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML, overrides).then(async (req) => {
             const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl);
             if (favicons === false) {
                 reject("Could not find favicons in HTML");
@@ -235,9 +240,10 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat) {
  * 
  * @param {string|URL} websiteUrl Website to request the favicon from
  * @param {string} outPathFormat see {@link downloadFavicon}
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix) {   
+export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix, overrides=DEFAULT_OVERRIDES) {   
     log(`_downloadFaviconFromExternalProvider:
         websiteUrl: ${websiteUrl}
         outPathFormat: ${outPathFormat}
@@ -246,7 +252,7 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
         `)
     return _saveFile(
         providerPrefix + (new URL(websiteUrl)).hostname + providerSuffix, 
-        outPathFormat, ACCEPTED_MIME_TYPES_ICONS);
+        outPathFormat, ACCEPTED_MIME_TYPES_ICONS, overrides);
 }
 
 /**
@@ -254,10 +260,11 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
  * 
  * @param {string|URL} websiteUrl Website to request the favicon from
  * @param {string} outPathFormat see {@link downloadFavicon}
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat) {
-    return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_DUCKDUCKGO, ".ico");
+export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
+    return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_DUCKDUCKGO, ".ico", overrides);
 }
 
 /**
@@ -265,10 +272,11 @@ export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat) {
  * 
  * @param {string|URL} websiteUrl Website to request the favicon from
  * @param {string} outPathFormat see {@link downloadFavicon}
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat) {
-    return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_GOOGLE, "");
+export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
+    return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_GOOGLE, "", overrides);
 }
 
 /**
@@ -285,10 +293,11 @@ export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat) {
  * output path format to use. %basename% and %extname% can be used to return the source file's properties
  * @example 
  * outPathFormat="outdir/favicon-fetcher-%basename%.%extname%"
+ * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  *  
  * @returns {Promise<string>} Local path to downloaded favicon 
  */
-export default async function downloadFavicon(url, outPathFormat="%basename%") {
+export default async function downloadFavicon(url, outPathFormat="%basename%", overrides=DEFAULT_OVERRIDES) {
     log(`downloadFavicon:
         ${url}
         ${outPathFormat}`)
@@ -301,13 +310,13 @@ export default async function downloadFavicon(url, outPathFormat="%basename%") {
         }
         if (extname(url.pathname) != "") {
             log("Option 1: file in url, just do a normal request")
-            _saveFile(url, outPathFormat, ACCEPTED_MIME_TYPES_ICONS)
+            _saveFile(url, outPathFormat, ACCEPTED_MIME_TYPES_ICONS, overrides)
                 .then(resolve)
                 .catch(e => reject(e));
         } else {
             const faviconFromOrigin = url.origin + "/favicon.ico";
             log(`Option 2: origin + /favicon.ico (${faviconFromOrigin})`)
-            _saveFile(faviconFromOrigin, outPathFormat, ACCEPTED_MIME_TYPES_ICONS)
+            _saveFile(faviconFromOrigin, outPathFormat, ACCEPTED_MIME_TYPES_ICONS, overrides)
                 .then(resolve)
                 .catch(e => {
                     log("Option 3: determine from webpage's HTML")

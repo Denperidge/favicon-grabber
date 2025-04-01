@@ -15,13 +15,20 @@ const URLS = [
 /**
  * Good examples of urls that give issues
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
- * - queerjs.com: no favicon, only a meta og:image. DDG external provider returns a random icon
- *   but also, that og:image content-type header is "; charset=utf-8". What
  */
 const URLS_THAT_DONT_QUITE_WORK = [ 
     "https://dp.la/", 
-    //"https://queerjs.com/organizers/"
 ];
+
+/**
+ * - queerjs.com: no favicon, only a meta og:image. DDG external provider returns a random icon
+ *   but also, that og:image's link to a png has a content-type header is "; charset=utf-8". What
+ */
+const URLS_THAT_NEED_OVERRIDES = {
+    "https://queerjs.com/organizers/": {
+        ignoreContentTypeHeader: true
+    }
+}
 
 const generatedFiles = [];
 
@@ -159,11 +166,21 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
 })
 
 test("downloadFavicon works as expected", async t => {
-    const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK);
+    const KEYS_URLS_THAT_NEED_OVERRIDES = Object.keys(URLS_THAT_NEED_OVERRIDES);
+    const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK).concat(KEYS_URLS_THAT_NEED_OVERRIDES);
     for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         t.log(url)
-        const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
+
+        let overrides = {};
+        console.log("@@@@")
+        console.log(KEYS_URLS_THAT_NEED_OVERRIDES)
+        if (KEYS_URLS_THAT_NEED_OVERRIDES.includes(url)) {
+            overrides = URLS_THAT_NEED_OVERRIDES[url];
+            console.log(overrides)
+        }
+
+        const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`, overrides);
         generatedFiles.push(output);
 
         t.true(
@@ -171,5 +188,7 @@ test("downloadFavicon works as expected", async t => {
                 parseFiletype(readFileSync(output)).mime)
             )
     };
+
+
 });
 
