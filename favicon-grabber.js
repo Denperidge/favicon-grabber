@@ -21,7 +21,7 @@ const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain=";
  * @typedef Overrides Different overrides that are available 
  * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
  */
-const DEFAULT_OVERRIDES = {contentTypeHeader: false};
+const DEFAULT_OVERRIDES = {ignoreContentTypeHeader: false};
 
 
 /**
@@ -44,8 +44,6 @@ const log =
         console.log("[FG] " + msg.toString());
     } :
     function(msg) {};
-
-const ignoreInvalidContentTypeHeader = env.FG_IGNORE_INVALID_HEADER != undefined && env.FG_IGNORE_INVALID_HEADER != "0" && env.FG_IGNORE_INVALID_HEADER != "false";
 
 /**
  * Parses a filepath into the outPathFormat
@@ -87,16 +85,15 @@ export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRID
                     reject(response);
                     return;
                 }
-                let accepted = false;
-                if (!overrides.ignoreContentTypeHeader) {
+                let accepted = overrides.ignoreContentTypeHeader;
+
+                if (!accepted) {
                     for (let i = 0; i < acceptedMimeTypes.length; i++) {
                         if (contentType.includes(acceptedMimeTypes[i])) {
                             accepted = true;
                             break
                         }
                     }
-                } else {
-                    accepted = true;
                 }
                 if (!accepted) {
                     const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})`;
@@ -178,8 +175,6 @@ export function findFaviconsInHtmlString(html, url=null) {
         const icoPathsMatches = _regexReturnHrefs(html, REGEX_GET_ICO)
             .concat(_regexReturnHrefs(html, REGEX_GET_ICO_META))
 
-        console.log("éééééééé")
-        console.log(icoPathsMatches)
         if (url === null) {
             log(`findFaviconsInHtmlString url == null\nOutput: ${icoPathsMatches.toString()}`)
             return icoPathsMatches;
@@ -320,15 +315,15 @@ export default async function downloadFavicon(url, outPathFormat="%basename%", o
                 .then(resolve)
                 .catch(e => {
                     log("Option 3: determine from webpage's HTML")
-                    downloadFaviconFromWebpage(url, outPathFormat)
+                    downloadFaviconFromWebpage(url, outPathFormat, overrides)
                     .then(resolve)
                     .catch(e => {
                         log("Option 4: Duckduckgo external provider");
-                        downloadFaviconFromDuckduckgo(url, outPathFormat)
+                        downloadFaviconFromDuckduckgo(url, outPathFormat, overrides)
                             .then(resolve)
                             .catch(e => {
                                 log("Option 5: Google external provider");
-                                downloadFaviconFromGoogle(url, outPathFormat)
+                                downloadFaviconFromGoogle(url, outPathFormat, overrides)
                                     .then(resolve)
                                     .catch(e => {
                                         console.error("All options tried, but no favicon could be found for " + url)

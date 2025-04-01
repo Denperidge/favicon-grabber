@@ -165,22 +165,46 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
     t.deepEqual(findFaviconsInHtmlString(html, TEST_URL), EXPECTED_RESULTS_WITH_URL, `Returns favicon hrefs without url (${EXPECTED_RESULTS_WITH_URL[0]}) if one is specified`)
 })
 
+test("Overrides work", async t=> {
+    //const KEYS_URLS_THAT_NEED_OVERRIDES = Object.keys(URLS_THAT_NEED_OVERRIDES);
+    //for (let i = 0; i < urls.length; i++) {
+    //    _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+    //}
+    
+
+    const tests = {
+        requestingHtmlWithIcoTypesRejects: false,
+        overrideContentTypeHeader: false
+    };
+
+    
+
+    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS)
+        .then((response) => {throw new Error("This should reject")})
+        .catch((err) => {tests.requestingHtmlWithIcoTypesRejects = true})
+    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+        .then((response) => {tests.overrideContentTypeHeader = true})
+        .catch((err) => {throw e})
+
+
+        /*
+    const ignoreIco = await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+    
+    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+    */
+    Object.entries(tests).forEach(([key, succeeded]) => {
+        t.true(succeeded, `${key} didn't succeed`)
+    });
+
+})
+
 test("downloadFavicon works as expected", async t => {
-    const KEYS_URLS_THAT_NEED_OVERRIDES = Object.keys(URLS_THAT_NEED_OVERRIDES);
-    const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK).concat(KEYS_URLS_THAT_NEED_OVERRIDES);
+    const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK)//.concat(KEYS_URLS_THAT_NEED_OVERRIDES);
     for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         t.log(url)
 
-        let overrides = {};
-        console.log("@@@@")
-        console.log(KEYS_URLS_THAT_NEED_OVERRIDES)
-        if (KEYS_URLS_THAT_NEED_OVERRIDES.includes(url)) {
-            overrides = URLS_THAT_NEED_OVERRIDES[url];
-            console.log(overrides)
-        }
-
-        const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`, overrides);
+        const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
         t.true(
