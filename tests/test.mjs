@@ -15,8 +15,13 @@ const URLS = [
 /**
  * Good examples of urls that give issues
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
+ * - queerjs.com: no favicon, only a meta og:image. DDG external provider returns a random icon
+ *   but also, that og:image content-type header is "; charset=utf-8". What
  */
-const URLS_THAT_DONT_QUITE_WORK = [ "https://dp.la/" ];
+const URLS_THAT_DONT_QUITE_WORK = [ 
+    "https://dp.la/", 
+    //"https://queerjs.com/organizers/"
+];
 
 const generatedFiles = [];
 
@@ -87,7 +92,7 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
     const EXPECTED_RESULTS = [
         "/favicon.ico?v=4393bde228f3",
         "/favicon-16x16.png?v=50d5f3028f70",
-        "/favicon-32x32.png?v=2b275943c6da",
+        "/favicon-32x32.PnG?v=2b275943c6da",
         "https://cheatsheet.denperidge.com/favicon-48x48.png?v=92136164553a",
         "/apple-touch-icon-57x57.png?v=cf5cf9f99205",
         "/apple-touch-icon-60x60.png?v=8cc19ecc8591",
@@ -134,6 +139,9 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
         "/apple-touch-startup-image-2224x1668.png?v=7753e4c813eb",
         "/apple-touch-startup-image-2048x2732.png?v=d648d09ba5d9",
         "/apple-touch-startup-image-2732x2048.png?v=0eb53364f945",
+        // Meta tags
+        "https://cheatsheet.denperidge.com/mstile-310x310.png?v=7edde8e3827b",
+        "/mstile-144x144.png?v=cda4f30ec4f6",
     ];
     const EXPECTED_RESULTS_WITH_URL = EXPECTED_RESULTS.map(result => {
         if (result.includes("://")) { 

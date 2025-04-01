@@ -6,7 +6,8 @@ import { finished } from "stream/promises";
 import { env } from "process";
 
 /** Regex used to find favicons in HTML code */
-const REGEX_GET_ICO = /<link(.|\n)*?href="(?<href>.*?(\.png|\.ico).*?)"(.|\n)*?>/gi;
+const REGEX_GET_ICO =      /<link([^>]|\n)*?href="(?<href>[^"]*?(\.png|\.ico).*?)"([^>]|\n)*?>/gi;
+const REGEX_GET_ICO_META = /<meta([^>]|\n)*?content="(?<href>[^"]*?(\.png|\.ico).*?)"([^>]|\n)*?>/gi;
 
 export const ACCEPTED_MIME_TYPES_ICONS = ["image/vnd.microsoft.icon", "image/x-icon", "image/png"];
 export const ACCEPTED_MIME_TYPES_HTML = [ "text/html" ]
@@ -35,6 +36,8 @@ const log =
         console.log("[FG] " + msg.toString());
     } :
     function(msg) {};
+
+const ignoreInvalidContentTypeHeader = env.FG_IGNORE_INVALID_HEADER != undefined && env.FG_IGNORE_INVALID_HEADER != "0" && env.FG_IGNORE_INVALID_HEADER != "false";
 
 /**
  * Parses a filepath into the outPathFormat
@@ -76,10 +79,20 @@ export async function _request(url, acceptedMimeTypes) {
                     return;
                 }
                 let accepted = false;
-                for (let i = 0; i < acceptedMimeTypes.length; i++) {
-                    if (contentType.includes(acceptedMimeTypes[i])) {
-                        accepted = true;
-                        break
+                if (!contentType.startsWith(";")) {
+                    for (let i = 0; i < acceptedMimeTypes.length; i++) {
+                        if (contentType.includes(acceptedMimeTypes[i])) {
+                            accepted = true;
+                            break
+                        }
+                    }
+                } else {
+                    log(`[FG] ${url} has an invalid content type header (${contentType})`);
+                    if (ignoreInvalidContentTypeHeader) {
+                        accepted = true
+                        log("env var FG_IGNORE_INVALID_HEADER is set, continuing...")
+                    } else {
+                        log("env var FG_IGNORE_INVALID_HEADER is not set. Rejecting request")
                     }
                 }
                 if (!accepted) {
@@ -130,6 +143,20 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
     });
 }
 
+
+/**
+ * Runs the regex needle against the haystack.
+ * Returns all results in the href group
+ * 
+ * @param {string} haystack 
+ * @param {RegExp} needleRegex 
+ * @returns {Array<string>}
+ */
+export function _regexReturnHrefs(haystack, needleRegex) {
+    return Array.from(haystack.matchAll(needleRegex)).map(
+        (match) => match.groups.href);
+}
+
 /**
  * Turns a HTML string into a list of favicon href's
  * 
@@ -143,9 +170,12 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
  */
 export function findFaviconsInHtmlString(html, url=null) {
     try {
-        const icoPathsMatches = Array.from(
-            html.matchAll(REGEX_GET_ICO))
-            .map((match) => match.groups.href);
+
+        const icoPathsMatches = _regexReturnHrefs(html, REGEX_GET_ICO)
+            .concat(_regexReturnHrefs(html, REGEX_GET_ICO_META))
+
+        console.log("éééééééé")
+        console.log(icoPathsMatches)
         if (url === null) {
             log(`findFaviconsInHtmlString url == null\nOutput: ${icoPathsMatches.toString()}`)
             return icoPathsMatches;
