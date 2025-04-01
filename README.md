@@ -45,9 +45,11 @@ try {
     await downloadFaviconFromDuckduckgo("https://www.mobilephonemuseum.com/", "favicon-%filestem%%extname%");
     // Use the external Google provider
     await downloadFaviconFromGoogle("https://denperidge.com", "favicon-%filestem%%extname%");
-    } catch (e) {
-        throw e;
-    }
+    // Override: ignore the content type header
+    await downloadFavicon("https://denperidge.com", "favicon-%filestem%%extname%", { ignoreContentTypeHeader: true });
+} catch (e) {
+    throw e;
+}
 
 ```
 

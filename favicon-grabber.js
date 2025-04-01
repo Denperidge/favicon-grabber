@@ -20,8 +20,9 @@ const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain=";
 /**
  * @typedef Overrides Different overrides that are available 
  * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
+ * @property {boolean} searchMetaTags whether to search the meta tags for icons
  */
-const DEFAULT_OVERRIDES = {ignoreContentTypeHeader: false};
+const DEFAULT_OVERRIDES = {ignoreContentTypeHeader: false, searchMetaTags: false};
 
 
 /**
@@ -72,7 +73,7 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
  * @returns {Promise<Response>} Fetch response
  */
 export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
-    log(`_request - acceptedMimeTypes: ${acceptedMimeTypes} url: ${url}`);
+    log(`_request - acceptedMimeTypes: ${acceptedMimeTypes} url: ${url} overrides: ${JSON.stringify(overrides)}`);
     return new Promise(async (resolve, reject) => {
         fetch(url)
             .then((response) => {
@@ -96,7 +97,7 @@ export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRID
                     }
                 }
                 if (!accepted) {
-                    const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})`;
+                    const msg = `Request rejected: response content type (${contentType}) is not included in accepted types (${acceptedMimeTypes})\n\tFrom URL: ${url}`;
                     log(msg);
                     reject(msg)
                     return;
@@ -169,12 +170,11 @@ export function _regexReturnHrefs(haystack, needleRegex) {
  * 
  * If an unpredicted error happens, this function will return false
  */
-export function findFaviconsInHtmlString(html, url=null) {
+export function findFaviconsInHtmlString(html, url=null, overrides=DEFAULT_OVERRIDES) {
     try {
-
-        const icoPathsMatches = _regexReturnHrefs(html, REGEX_GET_ICO)
-            .concat(_regexReturnHrefs(html, REGEX_GET_ICO_META))
-
+        const icoPathsMatches = !overrides.searchMetaTags ? 
+            _regexReturnHrefs(html, REGEX_GET_ICO) :
+            _regexReturnHrefs(html, REGEX_GET_ICO).concat(_regexReturnHrefs(html, REGEX_GET_ICO_META));
         if (url === null) {
             log(`findFaviconsInHtmlString url == null\nOutput: ${icoPathsMatches.toString()}`)
             return icoPathsMatches;
@@ -211,7 +211,7 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, over
     log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
         _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML, overrides).then(async (req) => {
-            const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl);
+            const favicons = findFaviconsInHtmlString(await req.text(), websiteUrl, overrides);
             if (favicons === false) {
                 reject("Could not find favicons in HTML");
             }
@@ -222,7 +222,7 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, over
                 return;
             }
             log(`Selected first favicon: ${favicons[0]}`)
-            downloadFavicon(favicons[0], outPathFormat)
+            downloadFavicon(favicons[0], outPathFormat, overrides)
                 .then(resolve).catch(reject)
         }).catch(reject);
     });
