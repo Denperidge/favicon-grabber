@@ -6,10 +6,10 @@ import { finished } from "stream/promises";
 import { env } from "process";
 
 /** Regex used to find favicons in HTML code */
-const REGEX_GET_ICO =      /<link([^>]|\n)*?href="(?<href>[^"]*?(\.png|\.ico).*?)"([^>]|\n)*?>/gi;
-const REGEX_GET_ICO_META = /<meta([^>]|\n)*?content="(?<href>[^"]*?(\.png|\.ico).*?)"([^>]|\n)*?>/gi;
+const REGEX_GET_ICO =      /<link([^>]|\n)*?href="(?<href>[^"]*?(\.png|\.ico|\.jpg|\.jpeg).*?)"([^>]|\n)*?>/gi;
+const REGEX_GET_ICO_META = /<meta([^>]|\n)*?content="(?<href>[^"]*?(\.png|\.ico|\.jpg|\.jpeg).*?)"([^>]|\n)*?>/gi;
 
-export const ACCEPTED_MIME_TYPES_ICONS = ["image/vnd.microsoft.icon", "image/x-icon", "image/png"];
+export const ACCEPTED_MIME_TYPES_ICONS = ["image/vnd.microsoft.icon", "image/x-icon", "image/png", "image/jpeg"];
 export const ACCEPTED_MIME_TYPES_HTML = [ "text/html" ]
 
 // Providers

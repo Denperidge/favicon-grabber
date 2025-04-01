@@ -11,7 +11,7 @@ The following logic is used:
 
 ## Limitations
 - The Fetch API is used instead of a full browser simulation. If the favicon is added with JavaScript on the client-side, this might give issues. However, there are fallbacks in case this happens.
-- It is currently coded to detect/accept .ico & .png files
+- It is currently coded to detect/accept .ico, .png & .jpg/.jpeg files
 
 ## How-to
 ### Basic usage

@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString} from "../favicon-grabber.js";
+import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage} from "../favicon-grabber.js";
 
 
 const URLS = [
@@ -142,8 +142,8 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
         "apple-touch-startup-image-2160x1640.png?v=d70c455aa012",
         "/apple-touch-startup-image-1668x2388.png?v=743ec6a73223",
         "/apple-touch-startup-image-2388x1668.PNG?v=764b5e666b7a",
-        "/apple-touch-startup-image-1668x2224.png?v=7d3bb7e60cdc",
-        "/apple-touch-startup-image-2224x1668.png?v=7753e4c813eb",
+        "/apple-touch-startup-image-1668x2224.jpeg?v=7d3bb7e60cdc",
+        "/apple-touch-startup-image-2224x1668.JpG?v=7753e4c813eb",
         "/apple-touch-startup-image-2048x2732.png?v=d648d09ba5d9",
         "/apple-touch-startup-image-2732x2048.png?v=0eb53364f945",
         // Meta tags
@@ -173,18 +173,42 @@ test("Overrides work", async t=> {
     
 
     const tests = {
-        requestingHtmlWithIcoTypesRejects: false,
-        overrideContentTypeHeader: false
+        _requestRequestingHtmlWithIcoTypesRejects: false,
+        _requestOverrideContentTypeHeader: false,
+        _saveFileRequestingHtmlWithIcoTypesRejects: false,
+        _saveFileOverrideContentTypeHeader: false,
+        downloadFaviconRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconOverrideContentTypeHeader: false,
+        downloadFaviconFromDuckduckgoRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconFromDuckduckgoOverrideContentTypeHeader: false,
+        downloadFaviconFromGoogleRequestingHtmlWithIcoTypesRejects:false,
+        downloadFaviconFromGoogleOverrideContentTypeHeader: false, 
+        downloadFaviconFromWebpageRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconFromWebpageOverrideContentTypeHeader: false,
     };
 
     
-
-    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS)
-        .then((response) => {throw new Error("This should reject")})
-        .catch((err) => {tests.requestingHtmlWithIcoTypesRejects = true})
-    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
-        .then((response) => {tests.overrideContentTypeHeader = true})
-        .catch((err) => {throw e})
+    const args = ["https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS]
+    const funcs = [ _request, _saveFile, downloadFavicon, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage ];
+    for (let i = 0; i < funcs.length; i++) {
+        const func = funcs[i];
+        await func(...args)
+            .then((response) => {throw new Error("This should reject")})
+            .catch((err) => {tests[func.name + "RequestingHtmlWithIcoTypesRejects"] = true});
+        await func(...args, {ignoreContentTypeHeader: true})
+            .then((response) => {
+                if (func.name != "_request") {
+                    generatedFiles.push(response);
+                    t.true(existsSync(response))
+                }
+                tests[func.name + "OverrideContentTypeHeader"] = true
+            })
+            .catch((err) => {throw err})
+        // _request uses less args
+        if (i == 0) {
+            args.splice(1, 0, `tests/${i}-overrides-%filestem%%extname%`)
+        }
+    }
 
 
         /*
@@ -208,7 +232,7 @@ test("downloadFavicon works as expected", async t => {
         generatedFiles.push(output);
 
         t.true(
-            [ "image/x-icon", "image/png" ].includes(
+            ACCEPTED_MIME_TYPES_ICONS.includes(
                 parseFiletype(readFileSync(output)).mime)
             )
     };
