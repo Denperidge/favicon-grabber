@@ -36,6 +36,8 @@ const DEFAULT_OVERRIDES = {
     ignoreContentTypeHeader: false, 
     searchMetaTags: false
 };
+const DEFAULT_OVERRIDES_EXTERNAL_PROVDERS = DEFAULT_OVERRIDES;
+DEFAULT_OVERRIDES_EXTERNAL_PROVDERS.fileExtFromContentTypeHeader = true;
 
 
 /**
@@ -159,10 +161,15 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
     log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
-            const outputPath = _parseOutputFormat(outPathFormat, originalUrl || url);
+            let outputPath = _parseOutputFormat(outPathFormat, originalUrl || url);
             _request(url, acceptedMimeTypes, overrides).then(async data => {
-                if (overrides.fileExtFromContentTypeHeader) {
-                    //_fileSuffixFromContentType(data.headers.get("content-type")
+                
+                if (overrides.fileExtFromContentTypeHeader) {                    
+                    const extension = _fileExtFromContentType(data);
+                    log(`overrides.fileExtFromContentTypeHeader is set! Determined extension ${extension} from ${outPathFormat}`)
+                    outputPath += extension;
+                    log(`New outputPath: ${outputPath}`)
+
                 }
                 const stream = createWriteStream(outputPath);
                 await finished(Readable.fromWeb(data.body).pipe(stream));
@@ -274,7 +281,7 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, over
  * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix, overrides=DEFAULT_OVERRIDES) {   
+export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {   
     log(`_downloadFaviconFromExternalProvider:
         websiteUrl: ${websiteUrl}
         outPathFormat: ${outPathFormat}
@@ -291,10 +298,10 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
  * 
  * @param {string|URL} websiteUrl Website to request the favicon from
  * @param {string} outPathFormat see {@link downloadFavicon}
- * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
+ * @param {Overrides} overrides Different possible overrides. This function has `overrides.fileExtFromContentTypeHeader` set to true by default. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
+export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {
     return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_DUCKDUCKGO, ".ico", overrides);
 }
 
@@ -303,10 +310,10 @@ export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, o
  * 
  * @param {string|URL} websiteUrl Website to request the favicon from
  * @param {string} outPathFormat see {@link downloadFavicon}
- * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
+ * @param {Overrides} overrides Different possible overrides. This function has `overrides.fileExtFromContentTypeHeader` set to true by default. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
+export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {
     return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_GOOGLE, "", overrides);
 }
 

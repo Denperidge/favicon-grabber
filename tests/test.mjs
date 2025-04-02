@@ -263,7 +263,7 @@ test("Download from external providers (DDG & Google) works", async t => {
     const externalProviders = [downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle]
     for (let i = 0; i < externalProviders.length; i++) {
         const output = await externalProviders[i]("https://google.com", `tests/external-${externalProviders[i].name}-%filestem%%extname%`)
-        //generatedFiles.push(output);
+        generatedFiles.push(output);
 
         t.true(filepathIsMimetype(
             output, 
