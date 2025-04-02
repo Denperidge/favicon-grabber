@@ -1,7 +1,7 @@
 {
   "name": "favicon-grabber",
   "description": "A Node.js no-dependency favicon grabber. It doesn't rely on external endpoints unless nothing else works; instead opting to use the HTML, regex and fetch wherever possible",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "type": "module",
   "main": "favicon-grabber.js",
   "author": "Denperidge",
