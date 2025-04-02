@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage} from "../favicon-grabber.js";
+import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage, _fileExtFromContentType, EXTERNAL_PROVIDER_GOOGLE, EXTERNAL_PROVIDER_DUCKDUCKGO } from "../favicon-grabber.js";
 
 
 const URLS = [
@@ -127,6 +127,25 @@ test("_request rejects status codes >= 400", async t => {
         .catch((response) => { rejected = false; })
     t.false(rejected)
 });
+
+
+test("_fileExtFromContentType returns the correct extensions", async t =>{
+    const tests = [
+        ["https://denperidge.com", ACCEPTED_MIME_TYPES_HTML, ".html"],
+        ["https://denperidge.com/favicon.ico", ACCEPTED_MIME_TYPES_ICONS, ".ico"],
+        [ EXTERNAL_PROVIDER_DUCKDUCKGO + "denperidge.com.ico", ACCEPTED_MIME_TYPES_ICONS, ".ico"],
+        [ EXTERNAL_PROVIDER_GOOGLE + "denperidge.com", ACCEPTED_MIME_TYPES_ICONS, ".jpg"],
+        [ "https://blinkies.cafe/favicon-2022-07-04.png", ACCEPTED_MIME_TYPES_ICONS, ".png"]
+    ]
+    for (let i = 0; i < tests.length; i++) {
+        const test = tests[i];
+        t.is(
+            _fileExtFromContentType(await _request(test[0], test[1])),
+            test[2],
+            `Incorrect filetype: ${test[0]}`
+        )
+    }
+})
 
 test("_saveFile... saves a file", async t => {
     const outputFilepath = await _saveFile(

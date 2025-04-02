@@ -21,13 +21,13 @@ export const MIME_TYPE_DICTIONARY = {
 
 
 // Providers
-const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
-const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
+export const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
+export const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain="; 
 
 
 /**
  * @typedef Overrides Different overrides that are available 
- * @property {boolean} fileExtFromContentTypeHeader add an extension to output file, based on the content type header.
+ * @property {boolean} fileExtFromContentTypeHeader add an extension to output file, based on the content type header. See {} {@link MIME_TYPE_DICTIONARY}
  * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
  * @property {boolean} searchMetaTags whether to search the meta tags for icons
  */
@@ -73,6 +73,26 @@ export function _parseOutputFormat(outPathFormat, originalFilepath) {
         .replace(/%basename%/gi, basename(originalFilepath))
         .replace(/%filestem%/gi, basename(originalFilepath, extname(originalFilepath)))
         .replace(/%extname%/gi, extname(originalFilepath).split("?")[0])
+}
+
+/**
+ * Determine the correct file extension from http response data
+ * 
+ * Please note that this only supports the file types as seen in {@link MIME_TYPE_DICTIONARY} 
+ * 
+ * @param {Response} data http response of which to determine file suffix {@link _request}
+ */
+export function _fileExtFromContentType(data) {
+    const contentType = data.headers.get("content-type");
+    const supportedMimeTypes = Object.keys(MIME_TYPE_DICTIONARY); //[response.headers.get("content-type")]
+
+    for (let i = 0; i < supportedMimeTypes.length; i++) {
+        const supportedMimeType = supportedMimeTypes[i];
+        if (contentType.includes(supportedMimeType)) {
+            return MIME_TYPE_DICTIONARY[supportedMimeType];
+        }
+    }
+    return null;
 }
 
 /**
@@ -141,7 +161,9 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
         try {
             const outputPath = _parseOutputFormat(outPathFormat, originalUrl || url);
             _request(url, acceptedMimeTypes, overrides).then(async data => {
-                //data.headers.get()
+                if (overrides.fileExtFromContentTypeHeader) {
+                    //_fileSuffixFromContentType(data.headers.get("content-type")
+                }
                 const stream = createWriteStream(outputPath);
                 await finished(Readable.fromWeb(data.body).pipe(stream));
                 if ((await stat(outputPath)).size == 0) {
