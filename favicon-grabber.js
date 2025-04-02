@@ -1,6 +1,6 @@
 import { basename, extname } from "path";
 import { createWriteStream } from "fs";
-import { stat, rm } from "fs/promises";
+import { stat, rm, rename } from "fs/promises";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import { env } from "process";
@@ -11,6 +11,14 @@ const REGEX_GET_ICO_META = /<meta([^>]|\n)*?content="(?<href>[^"]*?(\.png|\.ico|
 
 export const ACCEPTED_MIME_TYPES_ICONS = ["image/vnd.microsoft.icon", "image/x-icon", "image/png", "image/jpeg"];
 export const ACCEPTED_MIME_TYPES_HTML = [ "text/html" ]
+export const MIME_TYPE_DICTIONARY = {
+    "image/vnd.microsoft.icon": ".ico", 
+    "image/x-icon": ".ico", 
+    "image/png": ".png", 
+    "image/jpeg": ".jpg",
+    "text/html": ".html"
+}
+
 
 // Providers
 const EXTERNAL_PROVIDER_DUCKDUCKGO = "https://icons.duckduckgo.com/ip3/";
@@ -19,10 +27,15 @@ const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?domain=";
 
 /**
  * @typedef Overrides Different overrides that are available 
+ * @property {boolean} fileExtFromContentTypeHeader add an extension to output file, based on the content type header.
  * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
  * @property {boolean} searchMetaTags whether to search the meta tags for icons
  */
-const DEFAULT_OVERRIDES = {ignoreContentTypeHeader: false, searchMetaTags: false};
+const DEFAULT_OVERRIDES = {
+    fileExtFromContentTypeHeader: false,
+    ignoreContentTypeHeader: false, 
+    searchMetaTags: false
+};
 
 
 /**
@@ -53,7 +66,6 @@ const log =
  * @param {string|URL} originalFilepath path to the file being adapted into outputFormat
  * @returns {string} outputPath
  * 
- * @private
  */
 export function _parseOutputFormat(outPathFormat, originalFilepath) {
     originalFilepath = originalFilepath.toString();
@@ -120,14 +132,16 @@ export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRID
  * @param {string} outPathFormat see {@link downloadFavicon}
  * @param {Array<string>} acceptedMimeTypes see {@link _request}
  * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
+ * @param {string|null} originalUrl For use with external providers. Overrides the url used to determine outPathFormat. See {@link _parseOutputFormat}
  * @returns {Promise<string>} final output path
  */
-export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
+export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes, overrides=DEFAULT_OVERRIDES, originalUrl=null) {
     log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
-            const outputPath = _parseOutputFormat(outPathFormat, url);
+            const outputPath = _parseOutputFormat(outPathFormat, originalUrl || url);
             _request(url, acceptedMimeTypes, overrides).then(async data => {
+                //data.headers.get()
                 const stream = createWriteStream(outputPath);
                 await finished(Readable.fromWeb(data.body).pipe(stream));
                 if ((await stat(outputPath)).size == 0) {
@@ -247,7 +261,7 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
         `)
     return _saveFile(
         providerPrefix + (new URL(websiteUrl)).hostname + providerSuffix, 
-        outPathFormat, ACCEPTED_MIME_TYPES_ICONS, overrides);
+        outPathFormat, ACCEPTED_MIME_TYPES_ICONS, overrides, websiteUrl);
 }
 
 /**

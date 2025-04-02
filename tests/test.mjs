@@ -79,6 +79,11 @@ const TEST_HTML_EXPECTED_META_TAG_RESULTS = [
     "/mstile-144x144.png?v=cda4f30ec4f6",
 ]
 
+function filepathIsMimetype(filepath, acceptedMimeTypes) {
+    return acceptedMimeTypes.includes(
+        parseFiletype(readFileSync(filepath)).mime);
+}
+
 const generatedFiles = [];
 
 test.after("Cleanup generated files", () => {
@@ -235,6 +240,19 @@ test("Override: ignoreContentTypeHeader", async t=> {
 
 })
 
+test("Download from external providers (DDG & Google) works", async t => {
+    const externalProviders = [downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle]
+    for (let i = 0; i < externalProviders.length; i++) {
+        const output = await externalProviders[i]("https://google.com", `tests/external-${externalProviders[i].name}-%filestem%%extname%`)
+        //generatedFiles.push(output);
+
+        t.true(filepathIsMimetype(
+            output, 
+            ACCEPTED_MIME_TYPES_ICONS
+        ));
+    }
+});
+
 test("downloadFavicon works as expected", async t => {
     const urls = URLS.concat(URLS_THAT_DONT_QUITE_WORK)//.concat(KEYS_URLS_THAT_NEED_OVERRIDES);
     for (let i = 0; i < urls.length; i++) {
@@ -244,12 +262,10 @@ test("downloadFavicon works as expected", async t => {
         const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
-        t.true(
-            ACCEPTED_MIME_TYPES_ICONS.includes(
-                parseFiletype(readFileSync(output)).mime)
-            )
+        t.true(filepathIsMimetype(
+            output, 
+            ACCEPTED_MIME_TYPES_ICONS
+        ));
     };
-
-
 });
 
