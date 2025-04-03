@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, existsSync } from "fs";
 import test from "ava";
 import { parse as parseFiletype } from "file-type-mime";
-import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage, _fileExtFromContentType, EXTERNAL_PROVIDER_GOOGLE, EXTERNAL_PROVIDER_DUCKDUCKGO } from "../favicon-grabber.js";
+import downloadFavicon, { ACCEPTED_MIME_TYPES_ICONS, ACCEPTED_MIME_TYPES_HTML, _parseOutputFormat, _request, _saveFile, findFaviconsInHtmlString, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage, _fileExtFromContentType, EXTERNAL_PROVIDER_GOOGLE, EXTERNAL_PROVIDER_DUCKDUCKGO, MIME_TYPE_DICTIONARY } from "../favicon-grabber.js";
 
 
 const URLS = [
@@ -17,7 +17,7 @@ const URLS = [
  * - dp.la: wget and fetch both return empty index.html and 202 code. This should use a fallback
  */
 const URLS_THAT_DONT_QUITE_WORK = [ 
-    "https://dp.la/", 
+    //"https://dp.la/", 
     "https://pdimagearchive.org/"
 ];
 
@@ -79,9 +79,18 @@ const TEST_HTML_EXPECTED_META_TAG_RESULTS = [
     "/mstile-144x144.png?v=cda4f30ec4f6",
 ]
 
-function filepathIsMimetype(filepath, acceptedMimeTypes) {
-    return acceptedMimeTypes.includes(
-        parseFiletype(readFileSync(filepath)).mime);
+/**
+ * 
+ * @param {import("ava").ExecutionContext} t 
+ * @param {string} filepath 
+ * @param {Array<string>} acceptedMimeTypes 
+ * @returns 
+ */
+function filepathIsMimetype(t, filepath, acceptedMimeTypes) {
+    const mimeType = parseFiletype(readFileSync(filepath)).mime;
+    const extension = MIME_TYPE_DICTIONARY[mimeType];
+    t.true(acceptedMimeTypes.includes(mimeType), `File has an uenxpected mimetype (mimetype found: ${mimeType}, filepath: ${filepath}, expected: ${acceptedMimeTypes}`);
+    t.true(filepath.toLowerCase().endsWith(extension), `File ends with incorrect file extension (expected: ${extension}, filepath: ${filepath})`);
 }
 
 const generatedFiles = [];
@@ -190,6 +199,61 @@ test("findFaviconsInHtmlString returns the correct (amount of) results, with an 
 test("Override: findFaviconsInHtmlString searchMetaTags", testFindFaviconsInHtmlString, TEST_HTML_EXPECTED_RESULTS.concat(TEST_HTML_EXPECTED_META_TAG_RESULTS), {searchMetaTags: true})
 
 
+/*
+test("Override: the oyther one", async t=> {
+    const tests = {
+        _requestRequestingHtmlWithIcoTypesRejects: false,
+        _requestOverrideContentTypeHeader: false,
+        _saveFileRequestingHtmlWithIcoTypesRejects: false,
+        _saveFileOverrideContentTypeHeader: false,
+        downloadFaviconRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconOverrideContentTypeHeader: false,
+        downloadFaviconFromDuckduckgoRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconFromDuckduckgoOverrideContentTypeHeader: false,
+        downloadFaviconFromGoogleRequestingHtmlWithIcoTypesRejects:false,
+        downloadFaviconFromGoogleOverrideContentTypeHeader: false, 
+        downloadFaviconFromWebpageRequestingHtmlWithIcoTypesRejects: false,
+        downloadFaviconFromWebpageOverrideContentTypeHeader: false,
+    };
+
+    downloadFaviconFromDuckduckgo()
+    
+    const args = ["https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS]
+    const funcs = [ _request, _saveFile, downloadFavicon, downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle, downloadFaviconFromWebpage ];
+    for (let i = 0; i < funcs.length; i++) {
+        const func = funcs[i];
+        await func(...args)
+            .then((response) => {throw new Error("This should reject")})
+            .catch((err) => {tests[func.name + "RequestingHtmlWithIcoTypesRejects"] = true});
+        await func(...args, {ignoreContentTypeHeader: true})
+            .then((response) => {
+                if (func.name != "_request") {
+                    generatedFiles.push(response);
+                    t.true(existsSync(response))
+                }
+                tests[func.name + "OverrideContentTypeHeader"] = true
+            })
+            .catch((err) => {throw err})
+        // _request uses less args
+        if (i == 0) {
+            args.splice(1, 0, `tests/${i}-overrides-%filestem%%extname%`)
+        }
+    }
+
+
+        /*
+    const ignoreIco = await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+    
+    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
+    */
+/*
+    Object.entries(tests).forEach(([key, succeeded]) => {
+        t.true(succeeded, `${key} didn't succeed`)
+    });
+
+})
+*/
+
 test("Override: test specific urls", async t => {
 
     /**
@@ -247,16 +311,9 @@ test("Override: ignoreContentTypeHeader", async t=> {
         }
     }
 
-
-        /*
-    const ignoreIco = await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
-    
-    await _request("https://denperidge.com", ACCEPTED_MIME_TYPES_ICONS, {ignoreContentTypeHeader: true})
-    */
     Object.entries(tests).forEach(([key, succeeded]) => {
         t.true(succeeded, `${key} didn't succeed`)
     });
-
 })
 
 test("Download from external providers (DDG & Google) works", async t => {
@@ -265,10 +322,7 @@ test("Download from external providers (DDG & Google) works", async t => {
         const output = await externalProviders[i]("https://google.com", `tests/external-${externalProviders[i].name}-%filestem%%extname%`)
         generatedFiles.push(output);
 
-        t.true(filepathIsMimetype(
-            output, 
-            ACCEPTED_MIME_TYPES_ICONS
-        ));
+        filepathIsMimetype(t, output, ACCEPTED_MIME_TYPES_ICONS);
     }
 });
 
@@ -281,10 +335,7 @@ test("downloadFavicon works as expected", async t => {
         const output = await downloadFavicon(url, `tests/${i}-%filestem%%extname%`);
         generatedFiles.push(output);
 
-        t.true(filepathIsMimetype(
-            output, 
-            ACCEPTED_MIME_TYPES_ICONS
-        ));
+        filepathIsMimetype(t, output, ACCEPTED_MIME_TYPES_ICONS);
     };
 });
 
