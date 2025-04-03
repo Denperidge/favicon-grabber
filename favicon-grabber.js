@@ -1,5 +1,5 @@
 import { basename, extname } from "path";
-import { createWriteStream } from "fs";
+import { createWriteStream, createReadStream } from "fs";
 import { stat, rm, rename } from "fs/promises";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
@@ -18,6 +18,18 @@ export const MIME_TYPE_DICTIONARY = {
     "image/jpeg": ".jpg",
     "text/html": ".html"
 }
+export const MAGIC_NUMBERS_DICTIONARY = {
+    "00000100": ".ico",
+    "89504E470D0A1A0A": ".png",
+    "CF8401": ".jpg",
+    "FFD8FFDB": ".jpg",
+    "FFD8FFE000104A46": ".jpg",
+    "49460001": ".jpg",
+    "FFD8FFEE ": ".jpg",
+    "FFD8FFE1": ".jpg",
+    "69660000 ": ".jpg",
+    "FFD8FFE0": ".jpg",
+}
 
 
 // Providers
@@ -28,6 +40,7 @@ export const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?doma
 /**
  * @typedef Overrides Different overrides that are available 
  * @property {boolean} fileExtFromContentTypeHeader add an extension to output file, based on the content type header. See {} {@link MIME_TYPE_DICTIONARY}
+ * @property {boolean} fileExtFromMagicNumber add an extension to output file, based on files magic number
  * @property {boolean} ignoreContentTypeHeader whether to ignore the content type header for a request
  * @property {boolean} searchMetaTags whether to search the meta tags for icons
  */
@@ -177,6 +190,45 @@ export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTyp
                     await rm(outputPath)
                     reject(`Output file ${outputPath} size is 0. The file has been automatically cleaned up`);
                     return;
+                }
+                if (overrides.fileExtFromMagicNumber) {
+                    log("overrides.fileExtFromMagicNumber is enabled! Reading first few bytes...")
+                    
+                    // Step 1: read first few bytes, convert to string (I hope that's not not-done)
+                    // Heavily based on https://stackoverflow.com/a/59722384
+                    const chunks = []
+                    for await (let chunk of createReadStream(outputPath, {start: 0, end: 16})) {
+                        chunks.push(chunk)
+                    }
+                    const hex = Buffer.concat(chunks).toString("hex").toUpperCase();
+
+                    // Step 2: match against magic number dictionary
+                    let ext, matched = false;
+                    const magicNumbers = Object.keys(MAGIC_NUMBERS_DICTIONARY);
+                    for (let i = 0; i < magicNumbers.length; i++) {
+                        const magicNumber = magicNumbers[i];
+                        if (hex.startsWith(magicNumber)) {
+                            ext = MAGIC_NUMBERS_DICTIONARY[magicNumber]
+                            log(`First few bytes match the magic bytes for ${ext} (Bytes detected: ${magicNumber})`);
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (matched) {
+                        if (outputPath.toLowerCase().endsWith(ext)) {
+                            log(`Output path matches ${ext}, not renaming. (${outputPath})`)
+                        } else {
+                            const oldOutputPath = outputPath;
+                            outputPath = oldOutputPath.replace(
+                                new RegExp(extname(oldOutputPath) + "$", "m"),
+                                ext
+                            )
+                            log(`Output path does not match ${ext}, renaming to ${outputPath} (from ${oldOutputPath})`)
+                            await rename(oldOutputPath, outputPath);
+                        }
+                    } else {
+                        console.warn(`[FG] WARN: Could not determine magic number from ${hex} (${outputPath})`);
+                    }
                 }
                 resolve(outputPath);
             }).catch(reject);

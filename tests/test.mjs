@@ -103,6 +103,7 @@ test.after("Cleanup generated files", () => {
     })
 })
 
+
 test("_parseOutputFormat works as expected", t => {
     const filename = "https://example.com/favicon.png";
     t.is(
@@ -253,6 +254,22 @@ test("Override: the oyther one", async t=> {
 
 })
 */
+
+
+test("Override: fileExtFromMagicNumber", async t => {
+
+    const outputA = await downloadFaviconFromDuckduckgo(
+        "https://dp.la", "tests/override-%basename%")
+
+    const outputB = await downloadFaviconFromDuckduckgo(
+        "https://dp.la", "tests/override-%basename%", {
+            fileExtFromMagicNumber: true
+    });
+    generatedFiles.push(outputA);
+    generatedFiles.push(outputB);
+    t.true(outputA.endsWith(".ico"))
+    t.true(outputB.endsWith(".png"))
+})
 
 test("Override: test specific urls", async t => {
 
