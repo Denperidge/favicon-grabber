@@ -8,6 +8,7 @@ const URLS = [
     "https://blinkies.cafe",
     "https://www.mobilephonemuseum.com/",
     "https://tweakers.net/nieuws/list/20250319",
+    "https://www.denperidge.com",
     //
     "https://www.digitaltransgenderarchive.net/",
     "https://lesbianherstoryarchives.org/collections/"
@@ -18,7 +19,7 @@ const URLS = [
  */
 const URLS_THAT_DONT_QUITE_WORK = [ 
     //"https://dp.la/", 
-    "https://pdimagearchive.org/"
+    //"https://pdimagearchive.org/"
 ];
 
 // 
@@ -79,6 +80,18 @@ const TEST_HTML_EXPECTED_META_TAG_RESULTS = [
     "/mstile-144x144.png?v=cda4f30ec4f6",
 ]
 
+
+/**
+ * Give a filepath, return a mime type
+ * 
+ * @param {string} filepath the filepath
+ * @returns {string} the mime type
+ */
+function filepathToMimeType(filepath) {
+    return parseFiletype(readFileSync(filepath)).mime;
+}
+
+
 /**
  * 
  * @param {import("ava").ExecutionContext} t 
@@ -87,7 +100,7 @@ const TEST_HTML_EXPECTED_META_TAG_RESULTS = [
  * @returns 
  */
 function filepathIsMimetype(t, filepath, acceptedMimeTypes) {
-    const mimeType = parseFiletype(readFileSync(filepath)).mime;
+    const mimeType = filepathToMimeType(filepath);
     const extension = MIME_TYPE_DICTIONARY[mimeType];
     t.true(acceptedMimeTypes.includes(mimeType), `File has an uenxpected mimetype (mimetype found: ${mimeType}, filepath: ${filepath}, expected: ${acceptedMimeTypes}`);
     t.true(filepath.toLowerCase().endsWith(extension), `File ends with incorrect file extension (expected: ${extension}, filepath: ${filepath})`);
@@ -257,18 +270,30 @@ test("Override: the oyther one", async t=> {
 
 
 test("Override: fileExtFromMagicNumber", async t => {
+    // Duckduckgo will return png's instead of ico's sometimes
+    const ddgUrl = `${EXTERNAL_PROVIDER_DUCKDUCKGO}dp.la.ico`;
+    const outputA = await downloadFavicon(
+        ddgUrl, "tests/feoa-override-%basename%")
+    t.is(filepathToMimeType(outputA), "image/png");
 
-    const outputA = await downloadFaviconFromDuckduckgo(
-        "https://dp.la", "tests/override-%basename%")
+    // But take heed, the content type header will tell lies 
+    const ddgContentType = (await _request(ddgUrl, ACCEPTED_MIME_TYPES_ICONS)).headers.get("content-type");
+    t.is(ddgContentType, "image/x-icon");
 
-    const outputB = await downloadFaviconFromDuckduckgo(
-        "https://dp.la", "tests/override-%basename%", {
-            fileExtFromMagicNumber: true
+    // overrides.fileExtFromMagicNumber helps!
+    const outputB = await downloadFavicon(ddgUrl, "tests/feob-override-%basename%", {
+        fileExtFromMagicNumber: true,
     });
+    
+    // The ddg helper has this built in
+    const outputC = await downloadFaviconFromDuckduckgo(
+        "https://dp.la", "tests/feoc-override-%basename%");
     generatedFiles.push(outputA);
     generatedFiles.push(outputB);
-    t.true(outputA.endsWith(".ico"))
-    t.true(outputB.endsWith(".png"))
+    generatedFiles.push(outputC);
+    t.true(outputA.endsWith(".ico"), `${outputA} does not end with .ico as expected`)
+    t.true(outputB.endsWith(".png"), `${outputB} does not end with .png as expected`)
+    t.true(outputC.endsWith(".png"), `${outputC} does not end with .png as expected`)
 })
 
 test("Override: test specific urls", async t => {
@@ -336,10 +361,12 @@ test("Override: ignoreContentTypeHeader", async t=> {
 test("Download from external providers (DDG & Google) works", async t => {
     const externalProviders = [downloadFaviconFromDuckduckgo, downloadFaviconFromGoogle]
     for (let i = 0; i < externalProviders.length; i++) {
-        const output = await externalProviders[i]("https://google.com", `tests/external-${externalProviders[i].name}-%filestem%%extname%`)
-        generatedFiles.push(output);
-
-        filepathIsMimetype(t, output, ACCEPTED_MIME_TYPES_ICONS);
+        for (let j = 0; j < URLS.length; j++) {
+            const url = URLS[j];
+            const output = await externalProviders[i](url, `tests/external-${externalProviders[i].name}-${j}-%filestem%%extname%`)
+            generatedFiles.push(output);
+            filepathIsMimetype(t, output, ACCEPTED_MIME_TYPES_ICONS);
+        }
     }
 });
 

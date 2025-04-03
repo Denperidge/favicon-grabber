@@ -45,12 +45,13 @@ export const EXTERNAL_PROVIDER_GOOGLE = "https://www.google.com/s2/favicons?doma
  * @property {boolean} searchMetaTags whether to search the meta tags for icons
  */
 const DEFAULT_OVERRIDES = {
+    fileExtFromMagicNumber: false,
     fileExtFromContentTypeHeader: false,
     ignoreContentTypeHeader: false, 
     searchMetaTags: false
 };
-const DEFAULT_OVERRIDES_EXTERNAL_PROVDERS = DEFAULT_OVERRIDES;
-DEFAULT_OVERRIDES_EXTERNAL_PROVDERS.fileExtFromContentTypeHeader = true;
+const DEFAULT_OVERRIDES_EXTERNAL_PROVDERS = structuredClone(DEFAULT_OVERRIDES);
+DEFAULT_OVERRIDES_EXTERNAL_PROVDERS.fileExtFromMagicNumber = true;
 
 
 /**
@@ -120,6 +121,9 @@ export function _fileExtFromContentType(data) {
  * @returns {Promise<Response>} Fetch response
  */
 export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
+    if (!acceptedMimeTypes) {
+        throw new Error("_request requires acceptedMimeTypes to be defined");
+    }
     log(`_request - acceptedMimeTypes: ${acceptedMimeTypes} url: ${url} overrides: ${JSON.stringify(overrides)}`);
     return new Promise(async (resolve, reject) => {
         fetch(url)
