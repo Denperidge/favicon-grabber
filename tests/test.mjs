@@ -268,13 +268,14 @@ test("Override: the oyther one", async t=> {
 })
 */
 
-
 test("Override: fileExtFromMagicNumber", async t => {
     // Duckduckgo will return png's instead of ico's sometimes
     const ddgUrl = `${EXTERNAL_PROVIDER_DUCKDUCKGO}dp.la.ico`;
     const outputA = await downloadFavicon(
         ddgUrl, "tests/feoa-override-%basename%")
+    generatedFiles.push(outputA);
     t.is(filepathToMimeType(outputA), "image/png");
+    t.true(outputA.endsWith(".ico"), `${outputA} does not end with .ico as expected`)
 
     // But take heed, the content type header will tell lies 
     const ddgContentType = (await _request(ddgUrl, ACCEPTED_MIME_TYPES_ICONS)).headers.get("content-type");
@@ -288,12 +289,10 @@ test("Override: fileExtFromMagicNumber", async t => {
     // The ddg helper has this built in
     const outputC = await downloadFaviconFromDuckduckgo(
         "https://dp.la", "tests/feoc-override-%basename%");
-    generatedFiles.push(outputA);
     generatedFiles.push(outputB);
     generatedFiles.push(outputC);
-    t.true(outputA.endsWith(".ico"), `${outputA} does not end with .ico as expected`)
-    t.true(outputB.endsWith(".png"), `${outputB} does not end with .png as expected`)
-    t.true(outputC.endsWith(".png"), `${outputC} does not end with .png as expected`)
+    filepathIsMimetype(t, outputB, ["image/png"])
+    filepathIsMimetype(t, outputC, ["image/png"])
 })
 
 test("Override: test specific urls", async t => {

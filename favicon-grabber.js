@@ -50,8 +50,6 @@ const DEFAULT_OVERRIDES = {
     ignoreContentTypeHeader: false, 
     searchMetaTags: false
 };
-const DEFAULT_OVERRIDES_EXTERNAL_PROVDERS = structuredClone(DEFAULT_OVERRIDES);
-DEFAULT_OVERRIDES_EXTERNAL_PROVDERS.fileExtFromMagicNumber = true;
 
 
 /**
@@ -120,7 +118,8 @@ export function _fileExtFromContentType(data) {
  * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<Response>} Fetch response
  */
-export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRIDES) {
+export async function _request(url, acceptedMimeTypes, overrides={}) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides);
     if (!acceptedMimeTypes) {
         throw new Error("_request requires acceptedMimeTypes to be defined");
     }
@@ -174,7 +173,8 @@ export async function _request(url, acceptedMimeTypes, overrides=DEFAULT_OVERRID
  * @param {string|null} originalUrl For use with external providers. Overrides the url used to determine outPathFormat. See {@link _parseOutputFormat}
  * @returns {Promise<string>} final output path
  */
-export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes, overrides=DEFAULT_OVERRIDES, originalUrl=null) {
+export async function _saveFile(url, outPathFormat="%basename%", acceptedMimeTypes, overrides={}, originalUrl=null) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides);
     log(`_saveFile:\n\turl: ${url}\n\toutPathFormat: ${outPathFormat}`);
     return new Promise(async (resolve, reject) => {
         try {
@@ -269,7 +269,8 @@ export function _regexReturnHrefs(haystack, needleRegex) {
  * 
  * If an unpredicted error happens, this function will return false
  */
-export function findFaviconsInHtmlString(html, url=null, overrides=DEFAULT_OVERRIDES) {
+export function findFaviconsInHtmlString(html, url=null, overrides={}) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides);
     try {
         const icoPathsMatches = !overrides.searchMetaTags ? 
             _regexReturnHrefs(html, REGEX_GET_ICO) :
@@ -306,7 +307,8 @@ export function findFaviconsInHtmlString(html, url=null, overrides=DEFAULT_OVERR
  * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {string} Local path to downloaded favicon 
  */
-export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES) {
+export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, overrides={}) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides);
     log(`_downloadFaviconFromWebpage: websiteUrl: ${websiteUrl}, outPathFormat: ${outPathFormat}`)
     return new Promise(async (resolve, reject) => {
         _request(websiteUrl, ACCEPTED_MIME_TYPES_HTML, overrides).then(async (req) => {
@@ -337,7 +339,8 @@ export async function downloadFaviconFromWebpage(websiteUrl, outPathFormat, over
  * @param {Overrides} overrides Different possible overrides. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {   
+export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, providerPrefix, providerSuffix, overrides) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides, {fileExtFromMagicNumber: true}); 
     log(`_downloadFaviconFromExternalProvider:
         websiteUrl: ${websiteUrl}
         outPathFormat: ${outPathFormat}
@@ -357,7 +360,7 @@ export async function _downloadFaviconFromExternalProvider(websiteUrl, outPathFo
  * @param {Overrides} overrides Different possible overrides. This function has `overrides.fileExtFromContentTypeHeader` set to true by default. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {
+export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, overrides={}) {
     return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_DUCKDUCKGO, ".ico", overrides);
 }
 
@@ -369,7 +372,8 @@ export async function downloadFaviconFromDuckduckgo(websiteUrl, outPathFormat, o
  * @param {Overrides} overrides Different possible overrides. This function has `overrides.fileExtFromContentTypeHeader` set to true by default. See {@link Overrides} & {@link DEFAULT_OVERRIDES}
  * @returns {Promise<string>} Local path to saved favicon
  */
-export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overrides=DEFAULT_OVERRIDES_EXTERNAL_PROVDERS) {
+export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overrides={}) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides) 
     return _downloadFaviconFromExternalProvider(websiteUrl, outPathFormat, EXTERNAL_PROVIDER_GOOGLE, "", overrides);
 }
 
@@ -391,7 +395,8 @@ export async function downloadFaviconFromGoogle(websiteUrl, outPathFormat, overr
  *  
  * @returns {Promise<string>} Local path to downloaded favicon 
  */
-export default async function downloadFavicon(url, outPathFormat="%basename%", overrides=DEFAULT_OVERRIDES) {
+export default async function downloadFavicon(url, outPathFormat="%basename%", overrides={}) {
+    overrides = Object.assign({}, DEFAULT_OVERRIDES, overrides);
     log(`downloadFavicon:
         ${url}
         ${outPathFormat}`)
